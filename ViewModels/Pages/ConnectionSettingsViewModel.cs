@@ -1,173 +1,55 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Security;
-using System.Text;
-using System.Threading.Tasks;
 using UiDesktopApp2.Helpers;
 using UiDesktopApp2.Models;
 using UiDesktopApp2.Services;
+using CommunityToolkit.Mvvm.Input;
+{
+    
+}
 
 namespace UiDesktopApp2.ViewModels.Pages
 {
     public class ConnectionSettingsViewModel : INotifyPropertyChanged
     {
-        private readonly IProfileManager _profileManager;
-        private readonly ICredentialManager _credentialManager;
+        // Initialize commands in the constructor to ensure non-null values
+        public RelayCommand NewProfileCommand { get; }
+        public RelayCommand SaveProfileCommand { get; }
+        public RelayCommand DeleteProfileCommand { get; }
 
-        public ConnectionSettingsViewModel(
-            IProfileManager profileManager,
-            ICredentialManager credentialManager)
+        // Constructor
+        public ConnectionSettingsViewModel()
         {
-            _profileManager = profileManager;
-            _credentialManager = credentialManager;
-
-            NewProfileCommand = new RelayCommand(NewProfile);
-            SaveProfileCommand = new RelayCommand(SaveProfile, CanSaveProfile);
-            DeleteProfileCommand = new RelayCommand(DeleteProfile, CanDeleteProfile);
-
-            LoadProfiles();
+            NewProfileCommand = new RelayCommand(OnNewProfile);
+            SaveProfileCommand = new RelayCommand(OnSaveProfile);
+            DeleteProfileCommand = new RelayCommand(OnDeleteProfile);
         }
 
-        #region Backing fields & properties
+        // Implement the PropertyChanged event required by INotifyPropertyChanged
+        public event PropertyChangedEventHandler? PropertyChanged;
 
-        private string _searchFilter;
-        public string SearchFilter
+        // Helper method to raise the PropertyChanged event
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
-            get => _searchFilter;
-            set
-            {
-                if (SetProperty(ref _searchFilter, value))
-                    OnPropertyChanged(nameof(FilteredProfiles));
-            }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public ObservableCollection<ConnectionProfile> Profiles { get; }
-            = new ObservableCollection<ConnectionProfile>();
-
-        public IEnumerable<ConnectionProfile> FilteredProfiles =>
-            string.IsNullOrWhiteSpace(_searchFilter)
-                ? Profiles
-                : Profiles.Where(p =>
-                    p.Name.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase) ||
-                    p.SourceVCenter.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase) ||
-                    p.SourceUsername.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase)
-                  );
-
-        private ConnectionProfile _selectedProfile;
-        public ConnectionProfile SelectedProfile
+        // Command methods
+        private void OnNewProfile()
         {
-            get => _selectedProfile;
-            set
-            {
-                if (SetProperty(ref _selectedProfile, value))
-                {
-                    // load/delete the saved password
-                    Password = value != null
-                        ? _credentialManager.GetPassword(value.Name)
-                        : new SecureString();
-
-                    SaveProfileCommand.RaiseCanExecuteChanged();
-                    DeleteProfileCommand.RaiseCanExecuteChanged();
-                }
-            }
+            // Logic for creating a new profile
         }
 
-        private SecureString _password = new SecureString();
-        /// <summary>
-        /// Bound in code‐behind to PasswordBox.SecurePassword
-        /// </summary>
-        public SecureString Password
+        private void OnSaveProfile()
         {
-            get => _password;
-            set => SetProperty(ref _password, value);
+            // Logic for saving a profile
         }
 
-        #endregion
-
-        #region Commands
-
-        private void NewProfile()
+        private void OnDeleteProfile()
         {
-            var np = new ConnectionProfile
-            {
-                Name = "New Profile",
-                SourceVCenter = "",
-                SourceUsername = ""
-                // DestinationVCenter & DestinationUsername if you need them too
-            };
-            Profiles.Add(np);
-            SelectedProfile = np;
+            // Logic for deleting a profile
         }
-
-        private bool CanSaveProfile()
-            => SelectedProfile != null
-            && !string.IsNullOrWhiteSpace(SelectedProfile.Name)
-            && !string.IsNullOrWhiteSpace(SelectedProfile.SourceVCenter)
-            && !string.IsNullOrWhiteSpace(SelectedProfile.SourceUsername);
-
-        private void SaveProfile()
-        {
-            // persist metadata
-            _profileManager.SaveProfile(SelectedProfile);
-            // persist secret
-            _credentialManager.SavePassword(
-                SelectedProfile.Name,
-                SelectedProfile.SourceUsername,
-                Password);
-            LoadProfiles();
-        }
-
-        private bool CanDeleteProfile() => SelectedProfile != null;
-
-        private void DeleteProfile()
-        {
-            _profileManager.DeleteProfile(SelectedProfile.Name);
-            _credentialManager.DeletePassword(SelectedProfile.Name);
-            LoadProfiles();
-            SelectedProfile = null;
-        }
-
-        #endregion
-
-        #region Helpers
-
-        private void LoadProfiles()
-        {
-            Profiles.Clear();
-            foreach (var p in _profileManager
-                                .GetAllProfiles()
-                                .OrderBy(x => x.Name))
-            {
-                Profiles.Add(p);
-            }
-
-            OnPropertyChanged(nameof(FilteredProfiles));
-            SaveProfileCommand.RaiseCanExecuteChanged();
-            DeleteProfileCommand.RaiseCanExecuteChanged();
-        }
-
-        #endregion
-
-        #region INotifyPropertyChanged
-
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string name = null)
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-
-        protected bool SetProperty<T>(ref T field, T value,
-            [CallerMemberName] string name = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(field, value))
-                return false;
-            field = value;
-            OnPropertyChanged(name);
-            return true;
-        }
-
-        #endregion
     }
 }
