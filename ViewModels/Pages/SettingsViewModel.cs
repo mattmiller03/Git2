@@ -1,6 +1,7 @@
 ﻿using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Appearance;
 
+
 namespace UiDesktopApp2.ViewModels.Pages
 {
     public partial class SettingsViewModel : ObservableObject, INavigationAware
@@ -31,7 +32,7 @@ namespace UiDesktopApp2.ViewModels.Pages
             _isInitialized = true;
         }
 
-        private string GetAssemblyVersion()
+        private static string GetAssemblyVersion()
         {
             return System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString()
                 ?? String.Empty;

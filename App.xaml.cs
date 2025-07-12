@@ -19,6 +19,7 @@ using Wpf.Ui.Extensions;
 using System;
 using System.Windows;
 
+
 namespace UiDesktopApp2
 {
     /// <summary>  
@@ -26,48 +27,103 @@ namespace UiDesktopApp2
     /// </summary>  
     public partial class App : Application
     {
-        private IHost? _host;
-        protected override void OnStartup(StartupEventArgs e)
+
+        private static readonly IHost _host = Host
+            .CreateDefaultBuilder()
+.ConfigureAppConfiguration(c =>
+{
+    var basePath = Path.GetDirectoryName(AppContext.BaseDirectory);
+    if (basePath is not null)
+    {
+        c.SetBasePath(basePath);
+    }
+    else
+    {
+        throw new InvalidOperationException("Base directory path cannot be null.");
+    }
+})
+            .ConfigureAppConfiguration(c => { c.SetBasePath(Path.GetDirectoryName(AppContext.BaseDirectory)); })
+            .ConfigureServices((context, services) =>
+            {
+                services.AddNavigationViewPageProvider();
+
+                services.AddHostedService<ApplicationHostService>();
+
+                // Theme manipulation
+                services.AddSingleton<IThemeService, ThemeService>();
+
+                // TaskBar manipulation
+                services.AddSingleton<ITaskBarService, TaskBarService>();
+
+                // Service containing navigation, same as INavigationWindow... but without window
+                services.AddSingleton<INavigationService, NavigationService>();
+
+                // Main window with navigation
+                services.AddSingleton<INavigationWindow, MainWindow>();
+                services.AddSingleton<MainWindowViewModel>();
+
+                services.AddSingleton<DashboardPage>();
+                services.AddSingleton<DashboardViewModel>();
+                services.AddSingleton<DataPage>();
+                services.AddSingleton<DataViewModel>();
+                services.AddSingleton<SettingsPage>();
+                services.AddSingleton<SettingsViewModel>();
+                // Other project services
+                services.AddSingleton<PowerShellManager>();
+                services.AddSingleton<ConnectionManager>();
+                services.AddSingleton<JsonProfileManager>();
+            }).Build();
+
+        private async void OnStartup(object sender, StartupEventArgs e)
         {
-            base.OnStartup(e);
-
-            // Build and start the generic Host
-            _host = Host.CreateDefaultBuilder()
-                .ConfigureServices((context, services) =>
-                {
-                    // Ensure the correct namespace is imported for AddWpfUi
-
-                    // View / view-model registrations
-                    services.AddSingleton<MainWindow>();
-                    services.AddSingleton<MainWindowViewModel>();
-
-                    // Navigation services
-                    services.AddSingleton<INavigationViewPageProvider, INavigationViewPageProvider>();
-                    services.AddSingleton<INavigationService, NavigationService>();
-
-                    // Other project services
-                    services.AddSingleton<PowerShellManager>();
-                    services.AddSingleton<ConnectionManager>();
-                    services.AddSingleton<JsonProfileManager>();
-                })
-                .Build();
-
-            _host.Start();
-
-            // Resolve and show the main window
-            var mainWindow = _host.Services.GetRequiredService<MainWindow>();
-            mainWindow.Show();
+            await _host.StartAsync();
         }
 
-        protected override async void OnExit(ExitEventArgs e)
+        private void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
         {
-            if (_host is not null)
-            {
-                await _host.StopAsync();
-                _host.Dispose();
-            }
+            MessageBox.Show($"An unhandled exception occurred: {e.Exception.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            e.Handled = true;
+        }
 
-            base.OnExit(e);
+        private async void OnExit(object sender, ExitEventArgs e)
+        {
+            await _host.StopAsync();
+
+            _host.Dispose();
+        }
+        private static void ConfigureServices(HostBuilderContext _, IServiceCollection services)
+        {
+            services.AddNavigationViewPageProvider();
+
+            services.AddHostedService<ApplicationHostService>();
+
+            // Theme manipulation
+            services.AddSingleton<IThemeService, ThemeService>();
+
+            // TaskBar manipulation
+            services.AddSingleton<ITaskBarService, TaskBarService>();
+
+            // Service containing navigation, same as INavigationWindow... but without window
+            services.AddSingleton<INavigationService, NavigationService>();
+
+            // Main window with navigation
+            services.AddSingleton<INavigationWindow, MainWindow>();
+            services.AddSingleton<MainWindowViewModel>();
+
+            services.AddSingleton<DashboardPage>();
+            services.AddSingleton<DashboardViewModel>();
+            services.AddSingleton<DataPage>();
+            services.AddSingleton<DataViewModel>();
+            services.AddSingleton<SettingsPage>();
+            services.AddSingleton<SettingsViewModel>();
+            // Other project services
+            services.AddSingleton<PowerShellManager>();
+            services.AddSingleton<ConnectionManager>();
+            services.AddSingleton<JsonProfileManager>();
+        }
+        public static IServiceProvider Services
+        {
+            get { return _host.Services; }
         }
     }
 }
