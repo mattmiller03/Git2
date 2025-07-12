@@ -21,6 +21,10 @@
     WindowCornerPreference="Round"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
+    <ui:FluentWindow.Resources>
+        <SolidColorBrush x:Key="ApplicationBackgroundBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#000000" />
+    </ui:FluentWindow.Resources>
     <ui:FluentWindow.InputBindings>
         <KeyBinding
             Key="F"
