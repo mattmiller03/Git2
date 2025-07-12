@@ -11,37 +11,37 @@ namespace UiDesktopApp2.ViewModels.Windows
 
         [ObservableProperty]
         private ObservableCollection<object> _menuItems = new()
-            {
-                new NavigationViewItem()
-                {
-                    Content = "Home",
-                    Icon = new SymbolIcon { Symbol = SymbolRegular.Home24 },
-                    TargetPageType = typeof(Views.Pages.DashboardPage)
-                },
-                new NavigationViewItem()
-                {
-                    Content = "Data",
-                    Icon = new SymbolIcon { Symbol = SymbolRegular.DataHistogram24 },
-                    TargetPageType = typeof(Views.Pages.DataPage)
-                }
-            };
+                    {
+                        new NavigationViewItem()
+                        {
+                            Content = "Home",
+                            Icon = new SymbolIcon { Symbol = SymbolRegular.Home24 },
+                            TargetPageType = typeof(Views.Pages.DashboardPage)
+                        },
+                        new NavigationViewItem()
+                        {
+                            Content = "Data",
+                            Icon = new SymbolIcon { Symbol = SymbolRegular.DataHistogram24 },
+                            TargetPageType = typeof(Views.Pages.DataPage)
+                        }
+                    };
 
         [ObservableProperty]
         private ObservableCollection<object> _footerMenuItems = new()
-            {
-                new NavigationViewItem()
-                {
-                    Content = "Settings",
-                    Icon = new SymbolIcon { Symbol = SymbolRegular.Settings24 },
-                    TargetPageType = typeof(Views.Pages.SettingsPage)
-                }
-            };
+                    {
+                        new NavigationViewItem()
+                        {
+                            Content = "Settings",
+                            Icon = new SymbolIcon { Symbol = SymbolRegular.Settings24 },
+                            TargetPageType = typeof(Views.Pages.SettingsPage)
+                        }
+                    };
 
         [ObservableProperty]
         private ObservableCollection<MenuItem> _trayMenuItems = new()
-            {
-                new MenuItem { Header = "Home", Tag = "tray_home" }
-            };
+                    {
+                        new MenuItem { Header = "Home", Tag = "tray_home" }
+                    };
 
         public MainWindowViewModel()
         {
@@ -56,7 +56,7 @@ namespace UiDesktopApp2.ViewModels.Windows
             {
                 Tag = "Connection",
                 Content = "Connection",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.Blur24 }
+                Icon = new SymbolIcon { Symbol = SymbolRegular.PlugConnected24 }
             });
             MenuItems.Add(new NavigationViewItem
             {
@@ -80,7 +80,7 @@ namespace UiDesktopApp2.ViewModels.Windows
             {
                 Tag = "Logs",
                 Content = "Logs",
-                Icon = new SymbolIcon { Symbol = SymbolRegular.Document24 } // Fixed: Changed 'TextDocument24' to 'Document24'
+                Icon = new SymbolIcon { Symbol = SymbolRegular.Document24 } // Fixed here
             });
 
             // example footer

@@ -10,7 +10,7 @@ namespace UiDesktopApp2.Services
 {
     public class Logger : ILogger
     {
-        public event Action<string, string> MessageWritten;
+        public event Action<string, string>? MessageWritten;
 
         public void Info(string message) => Log(message, "INFO");
         public void Warn(string message) => Log(message, "WARN");
