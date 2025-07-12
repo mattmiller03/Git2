@@ -3,73 +3,193 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:local="clr-namespace:UiDesktopApp2.Views.Windows"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    Title="{Binding ViewModel.ApplicationTitle, Mode=OneWay}"
-    Width="1100"
-    Height="650"
-    d:DataContext="{d:DesignInstance local:MainWindow,
-                                     IsDesignTimeCreatable=True}"
-    d:DesignHeight="450"
-    d:DesignWidth="800"
-    ui:Design.Background="{DynamicResource ApplicationBackgroundBrush}"
-    ui:Design.Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+    Title="{Binding ApplicationTitle, Mode=OneWay}"
+    Width="1200"
+    Height="800"
+    MinWidth="1000"
+    MinHeight="600"
     ExtendsContentIntoTitleBar="True"
-    Foreground="{DynamicResource TextFillColorPrimaryBrush}"
     WindowBackdropType="Mica"
     WindowCornerPreference="Round"
     WindowStartupLocation="CenterScreen"
-    mc:Ignorable="d">
-    <ui:FluentWindow.InputBindings>
-        <KeyBinding
-            Key="F"
-            Command="{Binding ElementName=AutoSuggestBox, Path=FocusCommand}"
-            Modifiers="Control" />
-    </ui:FluentWindow.InputBindings>
+    mc:Ignorable="d"> 
 
-    <Grid>
-        <ui:TitleBar
-            x:Name="TitleBar"
-            Title="{Binding ViewModel.ApplicationTitle}"
-            Grid.Row="0"
-            CloseWindowByDoubleClickOnIcon="True">
-            <ui:TitleBar.Icon>
-                <ui:ImageIcon Source="pack://application:,,,/Assets/wpfui-icon-256.png" />
-            </ui:TitleBar.Icon>
-        </ui:TitleBar>
+    <Grid>  
+        <Grid.RowDefinitions>  
+            <RowDefinition Height="Auto" />  
+            <RowDefinition Height="*" />  
+        </Grid.RowDefinitions>  
 
-        <ui:NavigationView
-            x:Name="RootNavigation"
-            Padding="42,0,42,0"
-            BreadcrumbBar="{Binding ElementName=BreadcrumbBar}"
-            FooterMenuItemsSource="{Binding ViewModel.FooterMenuItems, Mode=OneWay}"
-            FrameMargin="0"
-            IsBackButtonVisible="Visible"
-            IsPaneToggleVisible="True"
-            MenuItemsSource="{Binding ViewModel.MenuItems, Mode=OneWay}"
-            OpenPaneLength="310"
-            PaneDisplayMode="Left"
-            TitleBar="{Binding ElementName=TitleBar, Mode=OneWay}">
-            <ui:NavigationView.Header>
-                <ui:BreadcrumbBar x:Name="BreadcrumbBar" Margin="42,32,42,20" />
-            </ui:NavigationView.Header>
-            <ui:NavigationView.AutoSuggestBox>
-                <ui:AutoSuggestBox x:Name="AutoSuggestBox" PlaceholderText="Search">
-                    <ui:AutoSuggestBox.Icon>
-                        <ui:IconSourceElement>
-                            <ui:SymbolIconSource Symbol="Search24" />
-                        </ui:IconSourceElement>
-                    </ui:AutoSuggestBox.Icon>
-                </ui:AutoSuggestBox>
-            </ui:NavigationView.AutoSuggestBox>
-            <ui:NavigationView.ContentOverlay>
-                <Grid>
-                    <ui:SnackbarPresenter x:Name="SnackbarPresenter" />
-                </Grid>
-            </ui:NavigationView.ContentOverlay>
-        </ui:NavigationView>
+        <!-- Title Bar -->  
+        <ui:TitleBar  
+            x:Name="TitleBar"  
+            Title="{Binding ViewModel.ApplicationTitle}"  
+            Grid.Row="0"  
+            CloseWindowByDoubleClickOnIcon="True">  
+            <ui:TitleBar.Icon>  
+                <ui:ImageIcon Source="pack://application:,,,/Assets/wpfui-icon-256.png" />  
+            </ui:TitleBar.Icon>  
+            <ui:TitleBar.Header>  
+                <!-- Connection Status Indicator -->  
+                <StackPanel Orientation="Horizontal"  
+                           VerticalAlignment="Center"  
+                           Margin="16,0">  
+                    <Ellipse Width="8" Height="8"  
+                            Fill="LimeGreen"  
+                            VerticalAlignment="Center"  
+                            Margin="0,0,4,0"  
+                            ToolTip="vCenter Connections Active" />  
+                    <TextBlock Text="Connected"  
+                              Style="{StaticResource CaptionTextBlockStyle}"  
+                              VerticalAlignment="Center"  
+                              Margin="0"  
+                              ToolTip="All vCenter connections are active" />  
+                </StackPanel>  
+            </ui:TitleBar.Header>  
+        </ui:TitleBar>  
 
-        <ContentPresenter x:Name="RootContentDialog" Grid.Row="0" />
-    </Grid>
+        <!-- Main Navigation -->  
+        <ui:NavigationView  
+            x:Name="RootNavigation"  
+            Grid.Row="1"  
+            Padding="0"  
+            BreadcrumbBar="{Binding ElementName=BreadcrumbBar}"  
+            FooterMenuItemsSource="{Binding ViewModel.FooterMenuItems, Mode=OneWay}"  
+            FrameMargin="0"  
+            IsBackButtonVisible="Visible"  
+            IsPaneToggleVisible="True"  
+            MenuItemsSource="{Binding ViewModel.MenuItems, Mode=OneWay}"  
+            OpenPaneLength="320"  
+            PaneDisplayMode="Left"  
+            TitleBar="{Binding ElementName=TitleBar, Mode=OneWay}">  
+
+            <!-- Navigation Header with Breadcrumb -->  
+            <ui:NavigationView.Header>  
+                <Grid Margin="24,16,24,8">  
+                    <Grid.RowDefinitions>  
+                        <RowDefinition Height="Auto" />  
+                        <RowDefinition Height="Auto" />  
+                    </Grid.RowDefinitions>  
+
+                    <ui:BreadcrumbBar x:Name="BreadcrumbBar"  
+                                     Grid.Row="0"  
+                                     Margin="0,0,0,8" />  
+
+                    <!-- Quick Status Bar -->  
+                    <Border Grid.Row="1"  
+                           Background="{DynamicResource ControlFillColorDefaultBrush}"  
+                           CornerRadius="4"  
+                           Padding="12,6"  
+                           Margin="0,0,0,8">  
+                        <Grid>  
+                            <Grid.ColumnDefinitions>  
+                                <ColumnDefinition Width="*" />  
+                                <ColumnDefinition Width="Auto" />  
+                            </Grid.ColumnDefinitions>  
+
+                            <StackPanel Orientation="Horizontal" Grid.Column="0">  
+                                <TextBlock Text="Active Migrations: "  
+                                          Style="{StaticResource CaptionTextBlockStyle}"  
+                                          Margin="0" />  
+                                <TextBlock Text="1"  
+                                          Style="{StaticResource CaptionTextBlockStyle}"  
+                                          FontWeight="SemiBold"  
+                                          Margin="0,0,16,0" />  
+                                <TextBlock Text="Queue: "  
+                                          Style="{StaticResource CaptionTextBlockStyle}"  
+                                          Margin="0" />  
+                                <TextBlock Text="3"  
+                                          Style="{StaticResource CaptionTextBlockStyle}"  
+                                          FontWeight="SemiBold"  
+                                          Margin="0" />  
+                            </StackPanel>  
+
+                            <!-- Fix for XDG0006, XDG0008, XDG0024, MC2000 -->  
+                            <TextBlock Grid.Column="1"  
+                                      Text="{Binding LastUpdatedTime}"  
+                                      Style="{StaticResource CaptionTextBlockStyle}"  
+                                      Margin="0" />  
+                        </Grid>  
+                    </Border>  
+                </Grid>  
+            </ui:NavigationView.Header>  
+
+            <!-- Search Box -->  
+            <ui:NavigationView.AutoSuggestBox>  
+                <ui:AutoSuggestBox x:Name="AutoSuggestBox"  
+                                  PlaceholderText="Search VMs, migrations, or settings..."  
+                                  Margin="24,8">  
+                    <ui:AutoSuggestBox.Icon>  
+                        <ui:IconSourceElement>  
+                            <ui:SymbolIconSource Symbol="Search24" />  
+                        </ui:IconSourceElement>  
+                    </ui:AutoSuggestBox.Icon>  
+                </ui:AutoSuggestBox>  
+            </ui:NavigationView.AutoSuggestBox>  
+
+            <!-- Content Overlay for Notifications -->  
+            <ui:NavigationView.ContentOverlay>  
+                <Grid>  
+                    <!-- Snackbar for notifications -->  
+                    <ui:SnackbarPresenter x:Name="SnackbarPresenter"  
+                                         VerticalAlignment="Bottom"  
+                                         HorizontalAlignment="Right"  
+                                         Margin="24" />  
+
+                    <!-- Loading overlay -->  
+                    <Border x:Name="LoadingOverlay"  
+                           Background="{DynamicResource ApplicationBackgroundBrush}"  
+                           Opacity="0.8"  
+                           Visibility="Collapsed">  
+                        <StackPanel HorizontalAlignment="Center"  
+                                   VerticalAlignment="Center">  
+                            <ui:ProgressRing Width="48"  
+                                           Height="48"  
+                                           IsIndeterminate="True" />  
+                            <TextBlock Text="Loading..."  
+                                      Style="{StaticResource BodyTextBlockStyle}"  
+                                      HorizontalAlignment="Center"  
+                                      Margin="0,16,0,0" />  
+                        </StackPanel>  
+                    </Border>  
+                </Grid>  
+            </ui:NavigationView.ContentOverlay>  
+
+            <!-- Pane Footer with additional info -->  
+            <ui:NavigationView.PaneFooter>  
+                <StackPanel Margin="16,8">  
+                    <Border Background="{DynamicResource ControlFillColorDefaultBrush}"  
+                           CornerRadius="4"  
+                           Padding="12,8"  
+                           Margin="0,0,0,8">  
+                        <StackPanel>  
+                            <TextBlock Text="System Status"  
+                                      Style="{StaticResource CaptionTextBlockStyle}"  
+                                      FontWeight="SemiBold"  
+                                      Margin="0,0,0,4" />  
+                            <StackPanel Orientation="Horizontal">  
+                                <Ellipse Width="6" Height="6"  
+                                        Fill="LimeGreen"  
+                                        VerticalAlignment="Center"  
+                                        Margin="0,0,6,0" />  
+                                <TextBlock Text="All Systems Operational"  
+                                          Style="{StaticResource CaptionTextBlockStyle}"  
+                                          Margin="0" />  
+                            </StackPanel>  
+                            <TextBlock Text="PowerCLI Connected"  
+                                      Style="{StaticResource CaptionTextBlockStyle}"  
+                                      Margin="0,2,0,0" />  
+                        </StackPanel>  
+                    </Border>  
+                </StackPanel>  
+            </ui:NavigationView.PaneFooter>  
+        </ui:NavigationView>  
+
+        <!-- Content Dialog Overlay -->  
+        <ContentPresenter x:Name="RootContentDialog"  
+                         Grid.Row="0"  
+                         Grid.RowSpan="2" />  
+    </Grid>  
 </ui:FluentWindow>

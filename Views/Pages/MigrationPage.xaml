@@ -1,14 +1,82 @@
 ﻿<Page x:Class="UiDesktopApp2.Views.Pages.MigrationPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      xmlns:local="clr-namespace:UiDesktopApp2.Views.Pages"
-      mc:Ignorable="d" 
-      d:DesignHeight="450" d:DesignWidth="800"
-      Title="MigrationPage">
+      xmlns:viewModels="clr-namespace:UiDesktopApp2.ViewModels.Pages"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      Title="Migration">
 
-    <Grid>
-        
+    <Grid Style="{StaticResource PageContentGrid}">
+        <ScrollViewer>
+            <StackPanel Style="{StaticResource SectionStackPanel}">
+
+                <TextBlock Text="VM Migration" 
+                          Style="{StaticResource TitleTextBlockStyle}" />
+
+                <!-- VM Selection -->
+                <ui:Card Style="{StaticResource SectionCard}">
+                    <StackPanel>
+                        <TextBlock Text="Select VMs to Migrate" 
+                                  Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                        <DataGrid x:Name="VmDataGrid" 
+                                 Style="{StaticResource StandardDataGrid}"
+                                 Height="300">
+                            <DataGrid.Columns>
+                                <DataGridCheckBoxColumn Header="Select" />
+                                <DataGridTextColumn Header="VM Name" />
+                                <DataGridTextColumn Header="Power State" />
+                                <DataGridTextColumn Header="Guest OS" />
+                                <DataGridTextColumn Header="CPU" />
+                                <DataGridTextColumn Header="Memory" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                            <ui:Button Content="Refresh VM List" 
+                                      Style="{StaticResource SecondaryButton}" />
+                            <ui:Button Content="Select All" 
+                                      Style="{StaticResource SecondaryButton}" />
+                            <ui:Button Content="Clear Selection" 
+                                      Style="{StaticResource SecondaryButton}" />
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- Migration Options -->
+                <ui:Card Style="{StaticResource SectionCard}">
+                    <StackPanel Style="{StaticResource FormStackPanel}">
+                        <TextBlock Text="Migration Options" 
+                                  Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                        <CheckBox Content="Power off VMs before migration" 
+                                 Style="{StaticResource FormCheckBox}" />
+                        <CheckBox Content="Create snapshots before migration" 
+                                 Style="{StaticResource FormCheckBox}" />
+                        <CheckBox Content="Validate destination compatibility" 
+                                 Style="{StaticResource FormCheckBox}" />
+
+                        <Label Content="Migration Type:" 
+                               Style="{StaticResource FormLabel}" />
+                        <ComboBox Style="{StaticResource FormComboBox}">
+                            <ComboBoxItem Content="Cold Migration" />
+                            <ComboBoxItem Content="vMotion" />
+                            <ComboBoxItem Content="Storage vMotion" />
+                        </ComboBox>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- Action Buttons -->
+                <StackPanel Orientation="Horizontal" 
+                           HorizontalAlignment="Right">
+                    <ui:Button Content="Preview Migration" 
+                              Style="{StaticResource SecondaryButton}" />
+                    <ui:Button Content="Start Migration" 
+                              Style="{StaticResource PrimaryButton}" />
+                    <ui:Button Content="Cancel" 
+                              Style="{StaticResource SecondaryButton}" />
+                </StackPanel>
+
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>

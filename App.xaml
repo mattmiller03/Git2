@@ -12,6 +12,181 @@
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
             </ResourceDictionary.MergedDictionaries>
+            <!-- Missing WPF UI Brushes - Add these -->
+            <SolidColorBrush x:Key="ApplicationBackgroundBrush" Color="#FF202020" />
+            <SolidColorBrush x:Key="TextFillColorPrimaryBrush" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="TextFillColorSecondaryBrush" Color="#FFB0B0B0" />
+            <SolidColorBrush x:Key="ControlFillColorDefaultBrush" Color="#FF3A3A3A" />
+            <SolidColorBrush x:Key="ControlStrokeColorDefaultBrush" Color="#FF5A5A5A" />
+            <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="#FF0078D4" />
+            
+            <!-- Common Text Styles -->
+            <Style x:Key="TitleTextBlockStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="28" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Margin" Value="0,0,0,16" />
+            </Style>
+
+            <Style x:Key="SubtitleTextBlockStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="20" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Margin" Value="0,0,0,12" />
+            </Style>
+
+            <Style x:Key="BodyTextBlockStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="14" />
+                <Setter Property="FontWeight" Value="Normal" />
+                <Setter Property="Margin" Value="0,0,0,8" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+
+            <Style x:Key="CaptionTextBlockStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="12" />
+                <Setter Property="FontWeight" Value="Normal" />
+                <Setter Property="Margin" Value="0,0,0,4" />
+                <Setter Property="Opacity" Value="0.8" />
+            </Style>
+
+            <Style x:Key="HeaderTextBlockStyle" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="16" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Margin" Value="0,0,0,8" />
+            </Style>
+
+            <!-- Common Layout Styles -->
+            <Style x:Key="PageContentGrid" TargetType="Grid">
+                <Setter Property="Margin" Value="24" />
+            </Style>
+
+            <Style x:Key="SectionStackPanel" TargetType="StackPanel">
+                <Setter Property="Margin" Value="0,0,0,24" />
+            </Style>
+
+            <Style x:Key="FormStackPanel" TargetType="StackPanel">
+                <Setter Property="Margin" Value="16" />
+                <Setter Property="Orientation" Value="Vertical" />
+            </Style>
+
+            <!-- Button Styles -->
+            <Style x:Key="PrimaryButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="Appearance" Value="Primary" />
+                <Setter Property="Margin" Value="0,8,8,0" />
+                <Setter Property="Padding" Value="16,8" />
+                <Setter Property="MinWidth" Value="100" />
+            </Style>
+
+            <Style x:Key="SecondaryButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="Appearance" Value="Secondary" />
+                <Setter Property="Margin" Value="0,8,8,0" />
+                <Setter Property="Padding" Value="16,8" />
+                <Setter Property="MinWidth" Value="100" />
+            </Style>
+
+            <Style x:Key="DangerButton" TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
+                <Setter Property="Appearance" Value="Danger" />
+                <Setter Property="Margin" Value="0,8,8,0" />
+                <Setter Property="Padding" Value="16,8" />
+                <Setter Property="MinWidth" Value="100" />
+            </Style>
+
+            <!-- Card Styles -->
+            <Style x:Key="SectionCard" TargetType="ui:Card" BasedOn="{StaticResource {x:Type ui:Card}}">
+                <Setter Property="Margin" Value="0,0,0,16" />
+                <Setter Property="Padding" Value="20" />
+            </Style>
+
+            <Style x:Key="FormCard" TargetType="ui:Card" BasedOn="{StaticResource {x:Type ui:Card}}">
+                <Setter Property="Margin" Value="8" />
+                <Setter Property="Padding" Value="24" />
+            </Style>
+
+            <!-- Input Styles -->
+            <Style x:Key="FormTextBox" TargetType="ui:TextBox" BasedOn="{StaticResource {x:Type ui:TextBox}}">
+                <Setter Property="Margin" Value="0,4,0,12" />
+                <Setter Property="MinHeight" Value="36" />
+            </Style>
+
+            <Style x:Key="FormPasswordBox" TargetType="ui:PasswordBox" BasedOn="{StaticResource {x:Type ui:PasswordBox}}">
+                <Setter Property="Margin" Value="0,4,0,12" />
+                <Setter Property="MinHeight" Value="36" />
+            </Style>
+
+            <Style x:Key="FormComboBox" TargetType="ComboBox">
+                <Setter Property="Margin" Value="0,4,0,12" />
+                <Setter Property="MinHeight" Value="36" />
+                <Setter Property="Padding" Value="8,6" />
+            </Style>
+
+            <!-- Also add these standard WPF controls that WPF UI doesn't replace -->
+            <Style x:Key="FormCheckBox" TargetType="CheckBox">
+                <Setter Property="Margin" Value="0,8,0,8" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+
+            <Style x:Key="FormRadioButton" TargetType="RadioButton">
+                <Setter Property="Margin" Value="0,4,0,4" />
+                <Setter Property="VerticalAlignment" Value="Center" />
+            </Style>
+
+            <Style x:Key="FormListBox" TargetType="ListBox">
+                <Setter Property="Margin" Value="0,4,0,12" />
+                <Setter Property="MinHeight" Value="100" />
+                <Setter Property="Padding" Value="4" />
+            </Style>
+
+            <!-- Label Styles -->
+            <Style x:Key="FormLabel" TargetType="Label">
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Margin" Value="0,8,0,4" />
+                <Setter Property="Padding" Value="0" />
+            </Style>
+
+            <!-- DataGrid Styles -->
+            <Style x:Key="StandardDataGrid" TargetType="DataGrid">
+                <Setter Property="AutoGenerateColumns" Value="False" />
+                <Setter Property="CanUserAddRows" Value="False" />
+                <Setter Property="CanUserDeleteRows" Value="False" />
+                <Setter Property="IsReadOnly" Value="True" />
+                <Setter Property="SelectionMode" Value="Single" />
+                <Setter Property="GridLinesVisibility" Value="Horizontal" />
+                <Setter Property="HeadersVisibility" Value="Column" />
+                <Setter Property="Margin" Value="0,8" />
+            </Style>
+
+            <!-- Progress Styles -->
+            <Style x:Key="SectionProgressBar" TargetType="ui:ProgressRing">
+                <Setter Property="Width" Value="24" />
+                <Setter Property="Height" Value="24" />
+                <Setter Property="Margin" Value="8,0" />
+            </Style>
+
+            <!-- Info Bar Styles -->
+            <Style x:Key="InfoMessage" TargetType="ui:InfoBar" BasedOn="{StaticResource {x:Type ui:InfoBar}}">
+                <Setter Property="Severity" Value="Informational" />
+                <Setter Property="Margin" Value="0,0,0,16" />
+            </Style>
+
+            <Style x:Key="WarningMessage" TargetType="ui:InfoBar" BasedOn="{StaticResource {x:Type ui:InfoBar}}">
+                <Setter Property="Severity" Value="Warning" />
+                <Setter Property="Margin" Value="0,0,0,16" />
+            </Style>
+
+            <Style x:Key="ErrorMessage" TargetType="ui:InfoBar" BasedOn="{StaticResource {x:Type ui:InfoBar}}">
+                <Setter Property="Severity" Value="Error" />
+                <Setter Property="Margin" Value="0,0,0,16" />
+            </Style>
+
+            <Style x:Key="SuccessMessage" TargetType="ui:InfoBar" BasedOn="{StaticResource {x:Type ui:InfoBar}}">
+                <Setter Property="Severity" Value="Success" />
+                <Setter Property="Margin" Value="0,0,0,16" />
+            </Style>
+
+            <!-- Common Margins -->
+            <Thickness x:Key="StandardMargin">16</Thickness>
+            <Thickness x:Key="SmallMargin">8</Thickness>
+            <Thickness x:Key="LargeMargin">24</Thickness>
+            <Thickness x:Key="FormElementMargin">0,4,0,12</Thickness>
+
         </ResourceDictionary>
     </Application.Resources>
 </Application>

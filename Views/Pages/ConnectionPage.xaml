@@ -1,0 +1,116 @@
+﻿<Page x:Class="UiDesktopApp2.Views.Pages.ConnectionPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:viewModels="clr-namespace:UiDesktopApp2.ViewModels.Pages"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      Title="Connection">
+
+    <Grid Style="{StaticResource PageContentGrid}">
+        <ScrollViewer>
+            <StackPanel Style="{StaticResource SectionStackPanel}">
+
+                <!-- Page Title -->
+                <TextBlock Text="vCenter Connection Management" 
+                          Style="{StaticResource TitleTextBlockStyle}" />
+
+                <!-- Source vCenter Section -->
+                <ui:Card Style="{StaticResource SectionCard}">
+                    <StackPanel Style="{StaticResource FormStackPanel}">
+                        <TextBlock Text="Source vCenter" 
+                                  Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                        <Label Content="Server Address:" 
+                               Style="{StaticResource FormLabel}" />
+                        <ui:TextBox x:Name="SourceServerTextBox" 
+                                   PlaceholderText="vcenter01.domain.com"
+                                   Style="{StaticResource FormTextBox}" />
+
+                        <Label Content="Username:" 
+                               Style="{StaticResource FormLabel}" />
+                        <ui:TextBox x:Name="SourceUsernameTextBox" 
+                                   PlaceholderText="administrator@vsphere.local"
+                                   Style="{StaticResource FormTextBox}" />
+
+                        <Label Content="Password:" 
+                               Style="{StaticResource FormLabel}" />
+                        <ui:PasswordBox x:Name="SourcePasswordBox" 
+                                       Style="{StaticResource FormPasswordBox}" />
+
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                            <ui:Button Content="Test Connection" 
+                                      Style="{StaticResource PrimaryButton}" />
+                            <ui:Button Content="Save Profile" 
+                                      Style="{StaticResource SecondaryButton}" />
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- Destination vCenter Section -->
+                <ui:Card Style="{StaticResource SectionCard}">
+                    <StackPanel Style="{StaticResource FormStackPanel}">
+                        <TextBlock Text="Destination vCenter" 
+                                  Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                        <Label Content="Server Address:" 
+                               Style="{StaticResource FormLabel}" />
+                        <ui:TextBox x:Name="DestServerTextBox" 
+                                   PlaceholderText="vcenter02.domain.com"
+                                   Style="{StaticResource FormTextBox}" />
+
+                        <Label Content="Username:" 
+                               Style="{StaticResource FormLabel}" />
+                        <ui:TextBox x:Name="DestUsernameTextBox" 
+                                   PlaceholderText="administrator@vsphere.local"
+                                   Style="{StaticResource FormTextBox}" />
+
+                        <Label Content="Password:" 
+                               Style="{StaticResource FormLabel}" />
+                        <ui:PasswordBox x:Name="DestPasswordBox" 
+                                       Style="{StaticResource FormPasswordBox}" />
+
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                            <ui:Button Content="Test Connection" 
+                                      Style="{StaticResource PrimaryButton}" />
+                            <ui:Button Content="Save Profile" 
+                                      Style="{StaticResource SecondaryButton}" />
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- Saved Profiles Section -->
+                <ui:Card Style="{StaticResource SectionCard}">
+                    <StackPanel>
+                        <TextBlock Text="Saved Connection Profiles" 
+                                  Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                        <TextBlock Text="Select a previously saved connection profile" 
+                                  Style="{StaticResource BodyTextBlockStyle}" />
+
+                        <Label Content="Profile:" 
+                               Style="{StaticResource FormLabel}" />
+                        <ComboBox x:Name="ProfileComboBox" 
+                                 Style="{StaticResource FormComboBox}" />
+
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                            <ui:Button Content="Load Profile" 
+                                      Style="{StaticResource PrimaryButton}" />
+                            <ui:Button Content="Delete Profile" 
+                                      Style="{StaticResource DangerButton}" />
+                        </StackPanel>
+                    </StackPanel>
+                </ui:Card>
+
+                <!-- Status Messages -->
+                <ui:InfoBar x:Name="ConnectionStatusInfo" 
+                           Title="Connection Status" 
+                           Message="Ready to connect" 
+                           Style="{StaticResource InfoMessage}" 
+                           IsOpen="True" />
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

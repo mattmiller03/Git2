@@ -16,11 +16,11 @@ using System.Windows.Shapes;
 namespace UiDesktopApp2.Views.Pages
 {
     /// <summary>
-    /// Interaction logic for ConnectionSettingsPage.xaml
+    /// Interaction logic for AboutPage.xaml
     /// </summary>
-    public partial class ConnectionSettingsPage : Page
+    public partial class AboutPage : Page
     {
-        public ConnectionSettingsPage()
+        public AboutPage()
         {
             InitializeComponent();
         }

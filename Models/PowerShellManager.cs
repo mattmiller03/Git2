@@ -6,20 +6,16 @@ using System.Threading.Tasks;
 using System.Management.Automation; // Ensure you have the System.Management.Automation NuGet package installed
 using UiDesktopApp2.Helpers;
 using System.Management.Automation.Runspaces; // For PowerShell runspaces
+using UiDesktopApp2.Services;
+
 
 
 namespace UiDesktopApp2.Models
 {
-    public class PowerShellManager
+    public class PowerShellManager(ILogManager logManager, IPowerShellScriptManager scriptMgr)
     {
-        private readonly ILogger _logger;
-        private readonly IPowerShellScriptManager _scriptMgr;
-
-        public PowerShellManager(ILogger logger, IPowerShellScriptManager scriptMgr)
-        {
-            _logger = logger;
-            _scriptMgr = scriptMgr;
-        }
+        private readonly ILogManager _LogManager = logManager ?? throw new ArgumentNullException(nameof(logManager));
+        private readonly IPowerShellScriptManager _scriptMgr = scriptMgr;
 
         public async Task<string> ExecuteAsync(string scriptName, Dictionary<string, object> parameters)
         {
@@ -33,7 +29,7 @@ namespace UiDesktopApp2.Models
             var results = await Task.Run(() => ps.Invoke());
             if (ps.Streams.Error.Count > 0)
                 foreach (var err in ps.Streams.Error)
-                    _logger.Error(err.ToString());
+                    _LogManager.Error(err.ToString());
 
             var sb = new StringBuilder();
             foreach (var r in results)

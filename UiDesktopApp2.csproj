@@ -11,6 +11,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="wpfui-icon.ico" />
   </ItemGroup>
 
@@ -18,12 +21,15 @@
     <PackageReference Include="Meziantou.Framework.Win32.CredentialManager" Version="1.7.4" />
     <PackageReference Include="System.Management.Automation" Version="7.5.2" />
     <PackageReference Include="WPF-UI" Version="4.0.2" />
+    <PackageReference Include="WPF-UI.Abstractions" Version="4.0.2" />
     <PackageReference Include="WPF-UI.DependencyInjection" Version="4.0.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.1" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0 " />
+    <PackageReference Include="WPF-UI.Tray" Version="4.0.2" />
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="appsettings.json" />
     <None Remove="Assets\wpfui-icon-256.png" />
     <None Remove="Assets\wpfui-icon-1024.png" />
   </ItemGroup>

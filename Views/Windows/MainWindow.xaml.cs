@@ -3,6 +3,8 @@ using Wpf.Ui;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
+using System;
+using System.Windows;
 
 namespace UiDesktopApp2.Views.Windows
 {
@@ -33,33 +35,24 @@ namespace UiDesktopApp2.Views.Windows
 
         public bool Navigate(Type pageType) => RootNavigation.Navigate(pageType);
 
-        public void SetPageService(INavigationViewPageProvider navigationViewPageProvider) => RootNavigation.SetPageProviderService(navigationViewPageProvider);
+        public void SetPageService(INavigationViewPageProvider navigationViewPageProvider)
+            => RootNavigation.SetPageProviderService(navigationViewPageProvider);
 
         public void ShowWindow() => Show();
 
         public void CloseWindow() => Close();
 
+        public void SetServiceProvider(IServiceProvider serviceProvider)
+        {
+            // Implementation if needed for additional services
+        }
+
         #endregion INavigationWindow methods
 
-        /// <summary>
-        /// Raises the closed event.
-        /// </summary>
         protected override void OnClosed(EventArgs e)
         {
             base.OnClosed(e);
-
-            // Make sure that closing this window will begin the process of closing the application.
             Application.Current.Shutdown();
-        }
-
-        INavigationView INavigationWindow.GetNavigation()
-        {
-            throw new NotImplementedException();
-        }
-
-        public void SetServiceProvider(IServiceProvider serviceProvider)
-        {
-            throw new NotImplementedException();
         }
     }
 }

@@ -1,14 +1,248 @@
 ﻿<Page x:Class="UiDesktopApp2.Views.Pages.LogsPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      xmlns:local="clr-namespace:UiDesktopApp2.Views.Pages"
-      mc:Ignorable="d" 
-      d:DesignHeight="450" d:DesignWidth="800"
-      Title="LogsPage">
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:viewModels="clr-namespace:UiDesktopApp2.ViewModels.Pages"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      d:DataContext="{d:DesignInstance viewModels:LogsViewModel}"
+      Title="Logs">
 
-    <Grid>
-        
+    <Grid Style="{StaticResource PageContentGrid}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Page Title -->
+        <TextBlock Text="Application Logs" 
+                  Style="{StaticResource TitleTextBlockStyle}"
+                  Grid.Row="0" />
+
+        <!-- Log Controls -->
+        <ui:Card Style="{StaticResource SectionCard}" Grid.Row="1">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- First Row - File Selection and Actions -->
+                <Grid Grid.Row="0" Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Label Content="Log File:" 
+                           Style="{StaticResource FormLabel}"
+                           Grid.Column="0"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0" />
+
+                    <ComboBox x:Name="LogFileComboBox" 
+                             Style="{StaticResource FormComboBox}"
+                             Grid.Column="1"
+                             Margin="0">
+                        <ComboBoxItem Content="Application.log" IsSelected="True" />
+                        <ComboBoxItem Content="Migration.log" />
+                        <ComboBoxItem Content="PowerShell.log" />
+                        <ComboBoxItem Content="Error.log" />
+                        <ComboBoxItem Content="Debug.log" />
+                    </ComboBox>
+
+                    <StackPanel Orientation="Horizontal" 
+                               Grid.Column="2" 
+                               Margin="16,0,0,0">
+                        <ui:Button Content="Refresh" 
+                                  Style="{StaticResource SecondaryButton}"
+                                  Margin="0" />
+                        <ui:Button Content="Open Folder" 
+                                  Style="{StaticResource SecondaryButton}" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Second Row - Filters and Search -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="150" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Label Content="Level:" 
+                           Style="{StaticResource FormLabel}"
+                           Grid.Column="0"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0" />
+
+                    <ComboBox x:Name="LogLevelFilterComboBox" 
+                             Style="{StaticResource FormComboBox}"
+                             Grid.Column="1"
+                             Margin="0">
+                        <ComboBoxItem Content="All Levels" IsSelected="True" />
+                        <ComboBoxItem Content="Error" />
+                        <ComboBoxItem Content="Warning" />
+                        <ComboBoxItem Content="Information" />
+                        <ComboBoxItem Content="Debug" />
+                        <ComboBoxItem Content="Verbose" />
+                    </ComboBox>
+
+                    <Label Content="Date:" 
+                           Style="{StaticResource FormLabel}"
+                           Grid.Column="2"
+                           VerticalAlignment="Center"
+                           Margin="16,0,8,0" />
+
+                    <ComboBox x:Name="DateFilterComboBox" 
+                             Style="{StaticResource FormComboBox}"
+                             Grid.Column="3"
+                             Margin="0">
+                        <ComboBoxItem Content="All Dates" IsSelected="True" />
+                        <ComboBoxItem Content="Today" />
+                        <ComboBoxItem Content="Last 7 Days" />
+                        <ComboBoxItem Content="Last 30 Days" />
+                        <ComboBoxItem Content="Custom Range" />
+                    </ComboBox>
+
+                    <Label Content="Search:" 
+                           Style="{StaticResource FormLabel}"
+                           Grid.Column="4"
+                           VerticalAlignment="Center"
+                           Margin="16,0,8,0" />
+
+                    <ui:TextBox x:Name="SearchTextBox" 
+                               PlaceholderText="Search logs..."
+                               Style="{StaticResource FormTextBox}"
+                               Grid.Column="5"
+                               Margin="0" />
+
+                    <ui:Button Content="Clear" 
+                              Style="{StaticResource SecondaryButton}"
+                              Grid.Column="6"
+                              Margin="8,0,0,0" />
+                </Grid>
+            </Grid>
+        </ui:Card>
+
+        <!-- Log Content Area -->
+        <ui:Card Style="{StaticResource SectionCard}" Grid.Row="2">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Log Info Header -->
+                <Grid Grid.Row="0" Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Grid.Column="0">
+                        <TextBlock Text="File Size: " 
+                                  Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock x:Name="FileSizeTextBlock" 
+                                  Text="1.2 MB" 
+                                  Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock Text=" | Last Modified: " 
+                                  Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock x:Name="LastModifiedTextBlock" 
+                                  Text="2024-01-15 14:30:25" 
+                                  Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock Text=" | Lines: " 
+                                  Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock x:Name="LineCountTextBlock" 
+                                  Text="15,432" 
+                                  Style="{StaticResource CaptionTextBlockStyle}" />
+                    </StackPanel>
+
+                    <CheckBox Content="Auto-scroll" 
+                             IsChecked="True"
+                             Style="{StaticResource FormCheckBox}"
+                             Grid.Column="1"
+                             Margin="0,0,16,0" />
+
+                    <CheckBox Content="Real-time" 
+                             IsChecked="False"
+                             Style="{StaticResource FormCheckBox}"
+                             Grid.Column="2" />
+                </Grid>
+
+                <!-- Log Display -->
+                <Border Grid.Row="1" 
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4">
+                    <ScrollViewer x:Name="LogScrollViewer" 
+                                  VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Auto">
+                        <TextBox x:Name="LogContentTextBox"
+                                AcceptsReturn="True"
+                                IsReadOnly="True"
+                                TextWrapping="NoWrap"
+                                FontFamily="Consolas"
+                                FontSize="12"
+                                Background="Transparent"
+                                BorderThickness="0"
+                                Padding="8"
+                                VerticalAlignment="Stretch"
+                                HorizontalAlignment="Stretch"
+                                Text="[2024-01-15 14:30:25.123] [INFO] Application started successfully&#x0A;[2024-01-15 14:30:25.456] [INFO] Loading configuration from appsettings.json&#x0A;[2024-01-15 14:30:25.789] [INFO] PowerCLI module loaded successfully&#x0A;[2024-01-15 14:30:26.012] [INFO] Initializing vCenter connections&#x0A;[2024-01-15 14:30:26.345] [WARN] Source vCenter certificate is not trusted&#x0A;[2024-01-15 14:30:26.678] [INFO] Connected to source vCenter: vcenter01.domain.com&#x0A;[2024-01-15 14:30:27.901] [INFO] Connected to destination vCenter: vcenter02.domain.com&#x0A;[2024-01-15 14:30:28.234] [INFO] Retrieved 47 VMs from source inventory&#x0A;[2024-01-15 14:30:28.567] [INFO] Migration planning initialized&#x0A;[2024-01-15 14:30:29.890] [DEBUG] Validating network mappings for VM: WebServer01&#x0A;[2024-01-15 14:30:30.123] [DEBUG] Network mapping validated: Production -> Production-New&#x0A;[2024-01-15 14:30:30.456] [INFO] Starting migration of VM: WebServer01&#x0A;[2024-01-15 14:30:35.789] [INFO] VM WebServer01 migrated successfully&#x0A;[2024-01-15 14:30:36.012] [ERROR] Failed to migrate VM: DatabaseServer01 - Insufficient resources on destination&#x0A;[2024-01-15 14:30:36.345] [INFO] Migration batch completed: 1 successful, 1 failed" />
+                    </ScrollViewer>
+                </Border>
+            </Grid>
+        </ui:Card>
+
+        <!-- Action Bar -->
+        <ui:Card Style="{StaticResource SectionCard}" Grid.Row="3">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Status and Progress -->
+                <StackPanel Orientation="Horizontal" 
+                           VerticalAlignment="Center"
+                           Grid.Column="0">
+                    <ui:ProgressRing x:Name="LogLoadingRing" 
+                                    Style="{StaticResource SectionProgressBar}"
+                                    IsIndeterminate="False"
+                                    Visibility="Collapsed" />
+
+                    <TextBlock x:Name="StatusTextBlock" 
+                              Text="Ready - Displaying last 1000 lines"
+                              Style="{StaticResource BodyTextBlockStyle}"
+                              VerticalAlignment="Center"
+                              Margin="8,0,0,0" />
+                </StackPanel>
+
+                <!-- Action Buttons -->
+                <StackPanel Orientation="Horizontal" 
+                           HorizontalAlignment="Right"
+                           Grid.Column="1">
+                    <ui:Button Content="Export Selected" 
+                              Style="{StaticResource SecondaryButton}" />
+                    <ui:Button Content="Export All" 
+                              Style="{StaticResource SecondaryButton}" />
+                    <ui:Button Content="Clear Log" 
+                              Style="{StaticResource DangerButton}" />
+                    <ui:Button Content="Archive Logs" 
+                              Style="{StaticResource SecondaryButton}" />
+                </StackPanel>
+            </Grid>
+        </ui:Card>
+
     </Grid>
 </Page>

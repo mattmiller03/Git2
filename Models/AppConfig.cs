@@ -2,23 +2,14 @@
 {
     public class AppConfig
     {
-        public string ConfigurationsFolder { get; set; }
-
-        public string AppPropertiesFileName { get; set; }
-
-        public string ScriptsFolder { get; set; }
-
-        /// <summary>
-        /// Where profiles.json lives if you want to override.
-        /// </summary>
-        public string ProfileStorePath { get; set; }
-        // TODO: add any other settings you read from appsettings.json,
-        // e.g. connection timeouts, log levels, etc.
-
-        public string DefaultSourceVCenter { get; set; }
-        public string DefaultDestinationVCenter { get; set; }
-        public int ConnectionTimeoutSeconds { get; set; } = 30;
+        public string ApplicationName { get; set; } = "vCenter Migration Tool";
+        public string Version { get; set; } = "1.0.0";
+        public int DefaultTimeout { get; set; } = 300;
+        public int MaxConcurrentMigrations { get; set; } = 5;
+        public string LogPath { get; set; } = "logs";
+        public string ProfilesPath { get; set; } = "profiles";
         public bool EnableDetailedLogging { get; set; } = true;
-        public string LogDirectory { get; set; } = "Logs";
+        public string DefaultSourceVCenter { get; set; } = string.Empty;
+        public string DefaultDestinationVCenter { get; set; } = string.Empty;
     }
 }

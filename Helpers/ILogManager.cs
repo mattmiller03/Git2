@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace UiDesktopApp2.Helpers
 {
-    public interface ILogger
+    public interface ILogManager
     {
         void Info(string message);
         void Warn(string message);

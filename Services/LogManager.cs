@@ -5,10 +5,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UiDesktopApp2.Helpers;
+using UiDesktopApp2.Services;
 
 namespace UiDesktopApp2.Services
 {
-    public class Logger : ILogger
+    public class LogManager : ILogManager
     {
         public event Action<string, string>? MessageWritten;
 

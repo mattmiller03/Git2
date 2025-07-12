@@ -12,7 +12,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace UiDesktopApp2.ViewModels.Pages
 {
-    public class ConnectionSettingsViewModel : INotifyPropertyChanged
+    public class ConnectionViewModel : INotifyPropertyChanged
     {
         // Initialize commands in the constructor to ensure non-null values
         public RelayCommand NewProfileCommand { get; }
@@ -20,7 +20,7 @@ namespace UiDesktopApp2.ViewModels.Pages
         public RelayCommand DeleteProfileCommand { get; }
 
         // Constructor
-        public ConnectionSettingsViewModel()
+        public ConnectionViewModel()
         {
             NewProfileCommand = new RelayCommand(OnNewProfile);
             SaveProfileCommand = new RelayCommand(OnSaveProfile);
