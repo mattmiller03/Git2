@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using UiDesktopApp2.Helpers;
 using UiDesktopApp2.Models;
+using UiDesktopApp2.Services;
 
 namespace UiDesktopApp2.Services
 {
@@ -62,6 +63,23 @@ namespace UiDesktopApp2.Services
         }
 
         // Additional methods for managing profiles
+        // Add the TestConnectionAsync method
+
+        public async Task<ConnectionResult> TestConnectionAsync(ConnectionProfile profile)
+        {
+            try
+            {
+                // Use PowerShellManager to test connection
+                return await _powerShellManager.TestVCenterConnectionAsync(profile);
+            }
+            catch (Exception ex)
+            {
+                return new ConnectionResult(
+                    isSuccessful: false,
+                    errorMessage: $"Connection test failed: {ex.Message}"
+                );
+            }
+        }
         public void AddProfile(ConnectionProfile profile)
         {
             _profileManager.SaveProfile(profile);

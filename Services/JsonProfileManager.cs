@@ -11,7 +11,7 @@ namespace UiDesktopApp2.Services
     public class JsonProfileManager : IProfileManager
     {
         private readonly string _filePath;
-        private List<ConnectionProfile> _profiles;
+        public List<ConnectionProfile> _profiles;
 
         public JsonProfileManager()
         {
@@ -28,7 +28,7 @@ namespace UiDesktopApp2.Services
             _profiles = LoadProfiles();
         }
 
-        private List<ConnectionProfile> LoadProfiles()
+        public List<ConnectionProfile> LoadProfiles()
         {
             try
             {

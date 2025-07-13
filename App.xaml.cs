@@ -79,6 +79,8 @@ namespace UiDesktopApp2
                 services.AddSingleton<AboutViewModel>();
 
                 // Business services
+                services.AddSingleton<ILogManager, LogManager>();
+                services.AddSingleton<IPowerShellScriptManager, PowerShellScriptManager>();
                 services.AddSingleton<PowerShellManager>();
                 services.AddSingleton<ConnectionManager>();
                 services.AddSingleton<IProfileManager, JsonProfileManager>();
@@ -87,9 +89,19 @@ namespace UiDesktopApp2
                 // Additional services for enhanced functionality
                 services.AddSingleton<ISnackbarService, SnackbarService>();
                 services.AddSingleton<IContentDialogService, ContentDialogService>();
+
             })
             .Build();
+        private void RegisterPowerShellScripts(IPowerShellScriptManager scriptManager)
+        {
+            scriptManager.RegisterScript(
+                "Set-Dyn_Env_TagPermissions",
+                @"Scripts\Set-Dyn_Env_TagPermissions.ps1"
+            );
 
+            // Register other scripts as needed
+            // scriptManager.RegisterScript("ScriptName", @"Scripts\ScriptName.ps1");
+        }
         public static IServiceProvider Services => _host.Services;
 
         protected override async void OnStartup(StartupEventArgs e)
@@ -99,13 +111,20 @@ namespace UiDesktopApp2
             try
             {
                 await _host.StartAsync();
-
+                var scriptManager = _host.Services.GetRequiredService<IPowerShellScriptManager>();
+                RegisterPowerShellScripts(scriptManager);
                 // Initialize logging
                 InitializeLogging();
 
                 // Get and show the main window
                 var mainWindow = _host.Services.GetRequiredService<INavigationWindow>();
-                mainWindow.ShowWindow();
+
+                // Replace ShowWindow() with explicit Show() and Activate()
+                if (mainWindow is Window window)
+                {
+                    window.Show();  // Explicitly show the window
+                    window.Activate();  // Bring to foreground
+                }
 
                 // Navigate to dashboard by default
                 mainWindow.Navigate(typeof(DashboardPage));
