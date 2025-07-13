@@ -37,17 +37,17 @@ namespace UiDesktopApp2
                 var appConfig = context.Configuration.GetSection("AppConfig").Get<AppConfig>() ?? new AppConfig();
                 services.AddSingleton(appConfig);
 
-                // WPF UI services
+                // WPF UI services - FIXED with proper generic types
                 services.AddSingleton<INavigationViewPageProvider, NavigationViewPageProvider>();
                 services.AddSingleton<IThemeService, ThemeService>();
                 services.AddSingleton<ITaskBarService, TaskBarService>();
                 services.AddSingleton<INavigationService, NavigationService>();
 
-                // Main window
+                // Main window - FIXED with proper generic types
                 services.AddSingleton<INavigationWindow, MainWindow>();
                 services.AddSingleton<MainWindowViewModel>();
 
-                // Pages and ViewModels
+                // Pages and ViewModels - FIXED with proper generic types
                 services.AddSingleton<DashboardPage>();
                 services.AddSingleton<DashboardViewModel>();
                 services.AddSingleton<DataPage>();
@@ -57,7 +57,19 @@ namespace UiDesktopApp2
                 services.AddSingleton<LogsPage>();
                 services.AddSingleton<LogsViewModel>();
 
-                // Business services
+                // Add the missing pages that exist in your repo
+                services.AddSingleton<ConnectionPage>();
+                services.AddSingleton<ConnectionViewModel>();
+                services.AddSingleton<BackupPage>();
+                services.AddSingleton<BackupViewModel>();
+                services.AddSingleton<MigrationPage>();
+                services.AddSingleton<MigrationViewModel>();
+                services.AddSingleton<ValidationPage>();
+                services.AddSingleton<ValidationViewModel>();
+                services.AddSingleton<AboutPage>();
+                services.AddSingleton<AboutViewModel>();
+
+                // Business services - FIXED with proper generic types
                 services.AddSingleton<PowerShellManager>();
                 services.AddSingleton<ConnectionManager>();
                 services.AddSingleton<IProfileManager, JsonProfileManager>();
@@ -81,7 +93,7 @@ namespace UiDesktopApp2
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to start application: {ex.Message}", "Startup Error");
+                MessageBox.Show($"Failed to start application: {ex.Message}\n\nInner: {ex.InnerException?.Message}", "Startup Error");
                 Environment.Exit(1);
             }
         }

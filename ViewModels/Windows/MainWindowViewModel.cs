@@ -21,9 +21,9 @@ namespace UiDesktopApp2.ViewModels.Windows
 
         [ObservableProperty]
         private ObservableCollection<MenuItem> _trayMenuItems = new ObservableCollection<MenuItem>
-            {
-                new MenuItem { Header = "Home", Tag = "tray_home" }
-            };
+        {
+            new MenuItem { Header = "Home", Tag = "tray_home" }
+        };
 
         public MainWindowViewModel(AppConfig appConfig)
         {

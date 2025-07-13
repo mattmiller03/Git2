@@ -7,7 +7,7 @@ using UiDesktopApp2.Helpers;
 
 namespace UiDesktopApp2.Models
 {
-    internal class MigrationTask
+    public class MigrationTask
     {
         public string ObjectName { get; set; } = string.Empty;  // Added default value
         public string ObjectType { get; set; } = string.Empty;  // Added default value
