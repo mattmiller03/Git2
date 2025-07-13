@@ -211,7 +211,7 @@ namespace UiDesktopApp2
             }
         }
 
-        private void ApplyTheme()
+        private static void ApplyTheme()
         {
             try
             {
