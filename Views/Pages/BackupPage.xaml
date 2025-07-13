@@ -6,6 +6,13 @@
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       mc:Ignorable="d"
       Title="Backup and Restore">
+    <Page.Resources>
+        <Style x:Key="StandardDataGrid" TargetType="DataGrid">
+            <Setter Property="AutoGenerateColumns" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+        </Style>
+    </Page.Resources>
 
     <Grid Style="{StaticResource PageContentGrid}">
         <ScrollViewer>
@@ -127,7 +134,8 @@
                                           Command="{Binding ImportTemplatesCommand}" />
                             </StackPanel>
 
-                            <TextBlock Text="{Binding TemplateCount, StringFormat='{0} templates available'}" 
+                            <!-- Fix for TemplateCount Binding -->
+                            <TextBlock Text="{Binding TemplateCount, StringFormat='{}{0} templates available'}" 
                                       Style="{StaticResource CaptionTextBlockStyle}"
                                       Margin="0,12,0,0" />
                         </StackPanel>
@@ -148,7 +156,7 @@
                                           Style="{StaticResource SubtitleTextBlockStyle}"
                                           Grid.Column="0" />
 
-                                <ui:SymbolIcon Symbol="DatabaseSync24" 
+                                <ui:SymbolIcon Symbol="Database24" 
                                               Grid.Column="1"
                                               VerticalAlignment="Center" />
                             </Grid>
@@ -256,7 +264,7 @@
                                                        Binding="{Binding Type}" 
                                                        Width="120" />
                                     <DataGridTextColumn Header="Date" 
-                                                       Binding="{Binding CreatedDate, StringFormat='{0:yyyy-MM-dd HH:mm}'}" 
+                                                       Binding="{Binding CreatedDate, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}" 
                                                        Width="140" />
                                     <DataGridTextColumn Header="Size" 
                                                        Binding="{Binding SizeFormatted}" 

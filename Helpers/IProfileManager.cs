@@ -13,5 +13,6 @@ namespace UiDesktopApp2.Helpers
         ConnectionProfile GetProfile(string name);
         void SaveProfile(ConnectionProfile profile);
         void DeleteProfile(string name);
+        bool ProfileExists(string name);
     }
 }

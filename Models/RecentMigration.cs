@@ -9,8 +9,8 @@ namespace UiDesktopApp2.Models
     public class RecentMigration
     {
         public string VmName { get; set; } = string.Empty;
-        public string Status { get; set; } = string.Empty;
-        public string TimeAgo { get; set; } = string.Empty;
-        public bool IsSuccess { get; set; }
+        public string SourceCluster { get; set; } = string.Empty;
+        public string DestinationCluster { get; set; } = string.Empty;
+        public DateTime MigrationDate { get; set; }
     }
 }

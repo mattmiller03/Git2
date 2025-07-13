@@ -9,10 +9,19 @@ using UiDesktopApp2.Models;
 using UiDesktopApp2.Services;
 using UiDesktopApp2.ViewModels.Pages;
 using UiDesktopApp2.ViewModels.Windows;
+using Wpf.Ui.Appearance;
 using UiDesktopApp2.Views.Pages;
 using UiDesktopApp2.Views.Windows;
 using Wpf.Ui;
 using Wpf.Ui.Abstractions;
+using Wpf.Ui.Controls;
+using Wpf.Ui.Extensions;
+
+using MessageBox = System.Windows.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
+using MessageBoxImage = System.Windows.MessageBoxImage;
+using MessageBoxResult = System.Windows.MessageBoxResult;
+using SystemTheme = UiDesktopApp2.Helpers.SystemTheme;
 
 namespace UiDesktopApp2
 {
@@ -22,11 +31,8 @@ namespace UiDesktopApp2
             .CreateDefaultBuilder()
             .ConfigureAppConfiguration((context, config) =>
             {
-                var basePath = Path.GetDirectoryName(AppContext.BaseDirectory);
-                if (basePath is null)
-                {
-                    throw new InvalidOperationException("Base directory path cannot be null.");
-                }
+                var basePath = Path.GetDirectoryName(AppContext.BaseDirectory)
+                    ?? throw new InvalidOperationException("Base directory path cannot be null.");
 
                 config.SetBasePath(basePath);
                 config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
@@ -77,6 +83,7 @@ namespace UiDesktopApp2
                 services.AddSingleton<ConnectionManager>();
                 services.AddSingleton<IProfileManager, JsonProfileManager>();
 
+
                 // Additional services for enhanced functionality
                 services.AddSingleton<ISnackbarService, SnackbarService>();
                 services.AddSingleton<IContentDialogService, ContentDialogService>();
@@ -108,7 +115,12 @@ namespace UiDesktopApp2
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to start application: {ex.Message}\n\nDetails: {ex}", "Startup Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(
+                    $"Failed to start application: {ex.Message}\n\nDetails: {ex}",
+                    "Startup Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
                 Environment.Exit(1);
             }
         }
@@ -203,10 +215,15 @@ namespace UiDesktopApp2
         {
             try
             {
-                var themeService = _host.Services.GetRequiredService<IThemeService>();
+                // Get the main window
+                var mainWindow = _host.Services.GetRequiredService<INavigationWindow>();
 
-                // Apply system theme by default
-                themeService.SetSystemTheme();
+                // Apply dark theme dynamically
+                Wpf.Ui.Appearance.ApplicationThemeManager.Apply(
+                    Wpf.Ui.Appearance.ApplicationTheme.Dark,
+                    Wpf.Ui.Controls.WindowBackdropType.Mica,
+                    true
+                );
             }
             catch (Exception ex)
             {
@@ -214,7 +231,7 @@ namespace UiDesktopApp2
             }
         }
 
-        private async Task SaveApplicationStateAsync()
+        private static async Task SaveApplicationStateAsync()
         {
             try
             {
@@ -230,7 +247,7 @@ namespace UiDesktopApp2
             }
         }
 
-        private void LogException(Exception exception)
+        private static void LogException(Exception exception)
         {
             try
             {
