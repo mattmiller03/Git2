@@ -1,14 +1,466 @@
 ﻿<Page x:Class="UiDesktopApp2.Views.Pages.BackupPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-      xmlns:local="clr-namespace:UiDesktopApp2.Views.Pages"
-      mc:Ignorable="d" 
-      d:DesignHeight="450" d:DesignWidth="800"
-      Title="BackupPage">
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      mc:Ignorable="d"
+      Title="Backup and Restore">
 
-    <Grid>
-        
+    <Grid Style="{StaticResource PageContentGrid}">
+        <ScrollViewer>
+            <StackPanel Style="{StaticResource SectionStackPanel}">
+
+                <!-- Page Title -->
+                <Grid Margin="0,0,0,24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Backup and Restore" 
+                                  Style="{StaticResource TitleTextBlockStyle}" />
+                        <TextBlock Text="Backup and restore vCenter configurations, VM templates, and migration data."
+                                  Style="{StaticResource BodyTextBlockStyle}" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" 
+                               Grid.Column="1"
+                               VerticalAlignment="Top">
+                        <ui:Button Content="New Backup" 
+                                  Style="{StaticResource PrimaryButton}"
+                                  Command="{Binding CreateBackupCommand}" />
+                        <ui:Button Content="Refresh" 
+                                  Style="{StaticResource SecondaryButton}"
+                                  Command="{Binding RefreshCommand}" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Backup Actions -->
+                <Grid Margin="0,0,0,24">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Configuration Backup -->
+                    <ui:Card Style="{StaticResource SectionCard}" 
+                            Grid.Column="0" 
+                            Margin="0,0,8,0">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Configuration Backup" 
+                                          Style="{StaticResource SubtitleTextBlockStyle}"
+                                          Grid.Column="0" />
+
+                                <ui:SymbolIcon Symbol="Settings24" 
+                                              Grid.Column="1"
+                                              VerticalAlignment="Center" />
+                            </Grid>
+
+                            <TextBlock Text="Backup application settings, connection profiles, and network mappings."
+                                      Style="{StaticResource CaptionTextBlockStyle}"
+                                      TextWrapping="Wrap"
+                                      Margin="0,8,0,16" />
+
+                            <StackPanel>
+                                <ui:Button Content="Backup Now" 
+                                          Style="{StaticResource PrimaryButton}"
+                                          HorizontalAlignment="Stretch"
+                                          Command="{Binding BackupConfigurationCommand}"
+                                          Margin="0,0,0,8" />
+
+                                <ui:Button Content="Schedule Backup" 
+                                          Style="{StaticResource SecondaryButton}"
+                                          HorizontalAlignment="Stretch"
+                                          Command="{Binding ScheduleConfigBackupCommand}" />
+                            </StackPanel>
+
+                            <TextBlock Text="{Binding LastConfigBackup, StringFormat='Last backup: {0}'}" 
+                                      Style="{StaticResource CaptionTextBlockStyle}"
+                                      Margin="0,12,0,0" />
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- VM Templates Backup -->
+                    <ui:Card Style="{StaticResource SectionCard}" 
+                            Grid.Column="1" 
+                            Margin="4,0">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="VM Templates" 
+                                          Style="{StaticResource SubtitleTextBlockStyle}"
+                                          Grid.Column="0" />
+
+                                <ui:SymbolIcon Symbol="Server24" 
+                                              Grid.Column="1"
+                                              VerticalAlignment="Center" />
+                            </Grid>
+
+                            <TextBlock Text="Export VM templates and OVF packages for disaster recovery."
+                                      Style="{StaticResource CaptionTextBlockStyle}"
+                                      TextWrapping="Wrap"
+                                      Margin="0,8,0,16" />
+
+                            <StackPanel>
+                                <ui:Button Content="Export Templates" 
+                                          Style="{StaticResource PrimaryButton}"
+                                          HorizontalAlignment="Stretch"
+                                          Command="{Binding ExportTemplatesCommand}"
+                                          Margin="0,0,0,8" />
+
+                                <ui:Button Content="Import Templates" 
+                                          Style="{StaticResource SecondaryButton}"
+                                          HorizontalAlignment="Stretch"
+                                          Command="{Binding ImportTemplatesCommand}" />
+                            </StackPanel>
+
+                            <TextBlock Text="{Binding TemplateCount, StringFormat='{0} templates available'}" 
+                                      Style="{StaticResource CaptionTextBlockStyle}"
+                                      Margin="0,12,0,0" />
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- Migration Data Backup -->
+                    <ui:Card Style="{StaticResource SectionCard}" 
+                            Grid.Column="2" 
+                            Margin="8,0,0,0">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Migration Data" 
+                                          Style="{StaticResource SubtitleTextBlockStyle}"
+                                          Grid.Column="0" />
+
+                                <ui:SymbolIcon Symbol="DatabaseSync24" 
+                                              Grid.Column="1"
+                                              VerticalAlignment="Center" />
+                            </Grid>
+
+                            <TextBlock Text="Backup migration logs, history, and performance data."
+                                      Style="{StaticResource CaptionTextBlockStyle}"
+                                      TextWrapping="Wrap"
+                                      Margin="0,8,0,16" />
+
+                            <StackPanel>
+                                <ui:Button Content="Backup Data" 
+                                          Style="{StaticResource PrimaryButton}"
+                                          HorizontalAlignment="Stretch"
+                                          Command="{Binding BackupMigrationDataCommand}"
+                                          Margin="0,0,0,8" />
+
+                                <ui:Button Content="Archive Logs" 
+                                          Style="{StaticResource SecondaryButton}"
+                                          HorizontalAlignment="Stretch"
+                                          Command="{Binding ArchiveLogsCommand}" />
+                            </StackPanel>
+
+                            <TextBlock Text="{Binding DataSize, StringFormat='Data size: {0}'}" 
+                                      Style="{StaticResource CaptionTextBlockStyle}"
+                                      Margin="0,12,0,0" />
+                        </StackPanel>
+                    </ui:Card>
+                </Grid>
+
+                <!-- Backup History -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Backup History List -->
+                    <ui:Card Style="{StaticResource SectionCard}" 
+                            Grid.Column="0" 
+                            Margin="0,0,8,0">
+                        <StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Backup History" 
+                                          Style="{StaticResource SubtitleTextBlockStyle}"
+                                          Grid.Column="0" />
+
+                                <StackPanel Orientation="Horizontal" Grid.Column="1">
+                                    <ui:Button Content="Clean Up" 
+                                              Style="{StaticResource SecondaryButton}"
+                                              Command="{Binding CleanupBackupsCommand}"
+                                              Margin="0,0,8,0" />
+                                    <ui:Button Content="Settings" 
+                                              Style="{StaticResource SecondaryButton}"
+                                              Command="{Binding BackupSettingsCommand}" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Filter Controls -->
+                            <Grid Margin="0,16,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Text="Type:" 
+                                          Style="{StaticResource BodyTextBlockStyle}"
+                                          VerticalAlignment="Center"
+                                          Grid.Column="0"
+                                          Margin="0,0,8,0" />
+
+                                <ComboBox Grid.Column="1"
+                                         ItemsSource="{Binding BackupTypes}"
+                                         SelectedItem="{Binding SelectedBackupType}"
+                                         Margin="0,0,16,0" />
+
+                                <TextBlock Text="Date:" 
+                                          Style="{StaticResource BodyTextBlockStyle}"
+                                          VerticalAlignment="Center"
+                                          Grid.Column="2"
+                                          Margin="0,0,8,0" />
+
+                                <ComboBox Grid.Column="3"
+                                         ItemsSource="{Binding DateFilters}"
+                                         SelectedItem="{Binding SelectedDateFilter}" />
+                            </Grid>
+
+                            <!-- Backup List -->
+                            <DataGrid ItemsSource="{Binding BackupHistory}"
+                                     SelectedItem="{Binding SelectedBackup}"
+                                     Style="{StaticResource StandardDataGrid}"
+                                     Height="300"
+                                     Margin="0,8,0,0">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="Name" 
+                                                       Binding="{Binding Name}" 
+                                                       Width="*" />
+                                    <DataGridTextColumn Header="Type" 
+                                                       Binding="{Binding Type}" 
+                                                       Width="120" />
+                                    <DataGridTextColumn Header="Date" 
+                                                       Binding="{Binding CreatedDate, StringFormat='{0:yyyy-MM-dd HH:mm}'}" 
+                                                       Width="140" />
+                                    <DataGridTextColumn Header="Size" 
+                                                       Binding="{Binding SizeFormatted}" 
+                                                       Width="80" />
+                                    <DataGridTextColumn Header="Status" 
+                                                       Binding="{Binding Status}" 
+                                                       Width="100" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <!-- Actions for selected backup -->
+                            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+                                <ui:Button Content="Restore" 
+                                          Style="{StaticResource PrimaryButton}"
+                                          Command="{Binding RestoreBackupCommand}"
+                                          CommandParameter="{Binding SelectedBackup}"
+                                          IsEnabled="{Binding CanRestore}"
+                                          Margin="0,0,8,0" />
+
+                                <ui:Button Content="Download" 
+                                          Style="{StaticResource SecondaryButton}"
+                                          Command="{Binding DownloadBackupCommand}"
+                                          CommandParameter="{Binding SelectedBackup}"
+                                          IsEnabled="{Binding CanDownload}"
+                                          Margin="0,0,8,0" />
+
+                                <ui:Button Content="Delete" 
+                                          Style="{StaticResource SecondaryButton}"
+                                          Command="{Binding DeleteBackupCommand}"
+                                          CommandParameter="{Binding SelectedBackup}"
+                                          IsEnabled="{Binding CanDelete}"
+                                          Margin="0,0,8,0" />
+
+                                <ui:Button Content="Verify" 
+                                          Style="{StaticResource SecondaryButton}"
+                                          Command="{Binding VerifyBackupCommand}"
+                                          CommandParameter="{Binding SelectedBackup}"
+                                          IsEnabled="{Binding CanVerify}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </ui:Card>
+
+                    <!-- Backup Status and Settings -->
+                    <ui:Card Style="{StaticResource SectionCard}" 
+                            Grid.Column="1" 
+                            Margin="8,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="Backup Status" 
+                                      Style="{StaticResource SubtitleTextBlockStyle}" />
+
+                            <!-- Current Operation -->
+                            <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                   BorderThickness="1"
+                                   CornerRadius="4"
+                                   Padding="12"
+                                   Margin="0,16,0,16"
+                                   Visibility="{Binding IsBackupInProgress, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock Text="Backup in Progress" 
+                                              Style="{StaticResource HeaderTextBlockStyle}" />
+
+                                    <ProgressBar Value="{Binding BackupProgress}" 
+                                               Maximum="100"
+                                               Height="8"
+                                               Margin="0,8,0,4" />
+
+                                    <TextBlock Text="{Binding CurrentBackupOperation}" 
+                                              Style="{StaticResource CaptionTextBlockStyle}" />
+
+                                    <ui:Button Content="Cancel" 
+                                              Style="{StaticResource SecondaryButton}"
+                                              Command="{Binding CancelBackupCommand}"
+                                              HorizontalAlignment="Right"
+                                              Margin="0,8,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Storage Information -->
+                            <StackPanel Margin="0,0,0,16">
+                                <TextBlock Text="Storage Information" 
+                                          Style="{StaticResource HeaderTextBlockStyle}" />
+
+                                <Grid Margin="0,8,0,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Text="Backup Location:" 
+                                              Style="{StaticResource CaptionTextBlockStyle}"
+                                              Grid.Row="0" Grid.Column="0" />
+                                    <TextBlock Text="{Binding BackupLocation}" 
+                                              Style="{StaticResource CaptionTextBlockStyle}"
+                                              Grid.Row="0" Grid.Column="1" />
+
+                                    <TextBlock Text="Used Space:" 
+                                              Style="{StaticResource CaptionTextBlockStyle}"
+                                              Grid.Row="1" Grid.Column="0" />
+                                    <TextBlock Text="{Binding UsedSpace}" 
+                                              Style="{StaticResource CaptionTextBlockStyle}"
+                                              Grid.Row="1" Grid.Column="1" />
+
+                                    <TextBlock Text="Available Space:" 
+                                              Style="{StaticResource CaptionTextBlockStyle}"
+                                              Grid.Row="2" Grid.Column="0" />
+                                    <TextBlock Text="{Binding AvailableSpace}" 
+                                              Style="{StaticResource CaptionTextBlockStyle}"
+                                              Grid.Row="2" Grid.Column="1" />
+                                </Grid>
+
+                                <ProgressBar Value="{Binding StorageUsagePercentage}" 
+                                           Maximum="100"
+                                           Height="8"
+                                           Margin="0,8,0,0" />
+                            </StackPanel>
+
+                            <!-- Automated Backup Settings -->
+                            <StackPanel Margin="0,0,0,16">
+                                <TextBlock Text="Automated Backups" 
+                                          Style="{StaticResource HeaderTextBlockStyle}" />
+
+                                <StackPanel Margin="0,8,0,0">
+                                    <CheckBox Content="Enable daily configuration backup"
+                                             IsChecked="{Binding EnableDailyBackup}"
+                                             Style="{StaticResource FormCheckBox}"
+                                             Margin="0,0,0,4" />
+
+                                    <CheckBox Content="Backup before migrations"
+                                             IsChecked="{Binding BackupBeforeMigration}"
+                                             Style="{StaticResource FormCheckBox}"
+                                             Margin="0,0,0,4" />
+
+                                    <CheckBox Content="Auto-cleanup old backups"
+                                             IsChecked="{Binding AutoCleanupBackups}"
+                                             Style="{StaticResource FormCheckBox}"
+                                             Margin="0,0,0,8" />
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Text="Retention:" 
+                                                  Style="{StaticResource CaptionTextBlockStyle}"
+                                                  VerticalAlignment="Center"
+                                                  Grid.Column="0"
+                                                  Margin="0,0,8,0" />
+
+                                        <ComboBox Grid.Column="1"
+                                                 ItemsSource="{Binding RetentionOptions}"
+                                                 SelectedItem="{Binding SelectedRetention}" />
+                                    </Grid>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <!-- Quick Actions -->
+                            <StackPanel>
+                                <TextBlock Text="Quick Actions" 
+                                          Style="{StaticResource HeaderTextBlockStyle}" />
+
+                                <StackPanel Margin="0,8,0,0">
+                                    <ui:Button Content="Open Backup Folder" 
+                                              Style="{StaticResource SecondaryButton}"
+                                              HorizontalAlignment="Stretch"
+                                              Command="{Binding OpenBackupFolderCommand}"
+                                              Margin="0,0,0,4" />
+
+                                    <ui:Button Content="Test Restore" 
+                                              Style="{StaticResource SecondaryButton}"
+                                              HorizontalAlignment="Stretch"
+                                              Command="{Binding TestRestoreCommand}"
+                                              Margin="0,0,0,4" />
+
+                                    <ui:Button Content="Export Settings" 
+                                              Style="{StaticResource SecondaryButton}"
+                                              HorizontalAlignment="Stretch"
+                                              Command="{Binding ExportSettingsCommand}"
+                                              Margin="0,0,0,4" />
+
+                                    <ui:Button Content="Import Settings" 
+                                              Style="{StaticResource SecondaryButton}"
+                                              HorizontalAlignment="Stretch"
+                                              Command="{Binding ImportSettingsCommand}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </ui:Card>
+                </Grid>
+
+                <!-- Status Bar -->
+                <ui:InfoBar x:Name="BackupStatusInfo" 
+                           Title="{Binding StatusTitle}" 
+                           Message="{Binding StatusMessage}" 
+                           Severity="{Binding StatusSeverity}"
+                           IsOpen="{Binding ShowStatus}" 
+                           Margin="0,16,0,0" />
+
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </Page>
