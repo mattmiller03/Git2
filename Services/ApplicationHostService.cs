@@ -4,56 +4,61 @@ using UiDesktopApp2.Views.Pages;
 using UiDesktopApp2.Views.Windows;
 using Wpf.Ui;
 
-namespace UiDesktopApp2.Services
+public class ApplicationHostService : IHostedService
 {
-    /// <summary>
-    /// Managed host of the application.
-    /// </summary>
-    public class ApplicationHostService : IHostedService
+    private readonly IServiceProvider _serviceProvider;
+    private INavigationWindow? _navigationWindow;
+
+    public ApplicationHostService(IServiceProvider serviceProvider)
     {
-        private readonly IServiceProvider _serviceProvider;
+        _serviceProvider = serviceProvider;
+    }
 
-        private INavigationWindow _navigationWindow;
+    public async Task StartAsync(CancellationToken cancellationToken)
+    {
+        await HandleActivationAsync();
+    }
 
-        public ApplicationHostService(IServiceProvider serviceProvider)
+    public async Task StopAsync(CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+    }
+
+    private async Task HandleActivationAsync()
+    {
+        await Task.CompletedTask;
+
+        try
         {
-            _serviceProvider = serviceProvider;
-        }
-
-        /// <summary>
-        /// Triggered when the application host is ready to start the service.
-        /// </summary>
-        /// <param name="cancellationToken">Indicates that the start process has been aborted.</param>
-        public async Task StartAsync(CancellationToken cancellationToken)
-        {
-            await HandleActivationAsync();
-        }
-
-        /// <summary>
-        /// Triggered when the application host is performing a graceful shutdown.
-        /// </summary>
-        /// <param name="cancellationToken">Indicates that the shutdown process should no longer be graceful.</param>
-        public async Task StopAsync(CancellationToken cancellationToken)
-        {
-            await Task.CompletedTask;
-        }
-
-        /// <summary>
-        /// Creates main window during activation.
-        /// </summary>
-        private async Task HandleActivationAsync()
-        {
-            if (!Application.Current.Windows.OfType<MainWindow>().Any())
+            if (!System.Windows.Application.Current.Windows.OfType<MainWindow>().Any())
             {
-                _navigationWindow = (
-                    _serviceProvider.GetService(typeof(INavigationWindow)) as INavigationWindow
-                )!;
-                _navigationWindow!.ShowWindow();
+                _navigationWindow = _serviceProvider.GetRequiredService<INavigationWindow>();
+                _navigationWindow?.ShowWindow();
 
-                _navigationWindow.Navigate(typeof(Views.Pages.DashboardPage));
+                // Optional: Navigate to default page
+                if (_navigationWindow != null)
+                {
+                    _navigationWindow.Navigate(typeof(DashboardPage));
+                }
             }
+            else
+            {
+                System.Windows.Application.Current.Windows.OfType<MainWindow>().First().Activate();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log the error
+            System.Diagnostics.Debug.WriteLine($"Activation Error: {ex.Message}");
 
-            await Task.CompletedTask;
+            // Optionally show an error message
+            System.Windows.MessageBox.Show(
+                $"Failed to start application: {ex.Message}",
+                "Startup Error",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Error
+            );
         }
     }
 }
+

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Windows;
@@ -9,39 +10,64 @@ using UiDesktopApp2.Models;
 using UiDesktopApp2.Services;
 using UiDesktopApp2.ViewModels.Pages;
 using UiDesktopApp2.ViewModels.Windows;
-using Wpf.Ui.Appearance;
 using UiDesktopApp2.Views.Pages;
 using UiDesktopApp2.Views.Windows;
 using Wpf.Ui;
 using Wpf.Ui.Abstractions;
+using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
-using Wpf.Ui.Extensions;
-
 using MessageBox = System.Windows.MessageBox;
-using MessageBoxButton = System.Windows.MessageBoxButton;
-using MessageBoxImage = System.Windows.MessageBoxImage;
-using MessageBoxResult = System.Windows.MessageBoxResult;
-using SystemTheme = UiDesktopApp2.Helpers.SystemTheme;
 
 namespace UiDesktopApp2
 {
     public partial class App : Application
     {
-        private static readonly IHost _host = Host
-            .CreateDefaultBuilder()
-            .ConfigureAppConfiguration((context, config) =>
-            {
-                var basePath = Path.GetDirectoryName(AppContext.BaseDirectory)
-                    ?? throw new InvalidOperationException("Base directory path cannot be null.");
+        private static readonly IHost _host;
 
-                config.SetBasePath(basePath);
-                config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
-            })
-            .ConfigureServices((context, services) =>
+        static App()
+        {
+            try
+            {
+                _host = Host
+                    .CreateDefaultBuilder()
+                    .ConfigureLogging(logging =>
+                    {
+                        logging.ClearProviders();
+                        logging.AddDebug();
+                        logging.AddConsole();
+                        logging.SetMinimumLevel(LogLevel.Trace);
+                    })
+                    .ConfigureAppConfiguration((context, config) =>
+                    {
+                        var basePath = Path.GetDirectoryName(AppContext.BaseDirectory)
+                            ?? throw new InvalidOperationException("Base directory path cannot be null.");
+
+                        config.SetBasePath(basePath);
+                        config.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+                    })
+                    .ConfigureServices((context, services) =>
+                    {
+                        ConfigureServices(context, services);
+                    })
+                    .Build();
+            }
+            catch (Exception ex)
+            {
+                LogStartupError(ex);
+                throw;
+            }
+        }
+
+        private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
+        {
+            try
             {
                 // App configuration
                 var appConfig = context.Configuration.GetSection("AppConfig").Get<AppConfig>() ?? new AppConfig();
                 services.AddSingleton(appConfig);
+
+                // Logging
+                services.AddLogging();
 
                 // WPF UI services
                 services.AddSingleton<INavigationViewPageProvider, NavigationViewPageProvider>();
@@ -49,195 +75,139 @@ namespace UiDesktopApp2
                 services.AddSingleton<ITaskBarService, TaskBarService>();
                 services.AddSingleton<INavigationService, NavigationService>();
 
-                // Main window
+                // Main window and navigation
                 services.AddSingleton<INavigationWindow, MainWindow>();
                 services.AddSingleton<MainWindowViewModel>();
 
-                // Pages and ViewModels - Core Application Pages
+                // Pages and ViewModels
                 services.AddSingleton<DashboardPage>();
                 services.AddSingleton<DashboardViewModel>();
-
                 services.AddSingleton<ConnectionPage>();
                 services.AddSingleton<ConnectionViewModel>();
-
                 services.AddSingleton<DataPage>();
                 services.AddSingleton<DataViewModel>();
-
                 services.AddSingleton<MigrationPage>();
                 services.AddSingleton<MigrationViewModel>();
-
                 services.AddSingleton<BackupPage>();
                 services.AddSingleton<BackupViewModel>();
-
                 services.AddSingleton<LogsPage>();
                 services.AddSingleton<LogsViewModel>();
-
                 services.AddSingleton<SettingsPage>();
                 services.AddSingleton<SettingsViewModel>();
-
                 services.AddSingleton<AboutPage>();
                 services.AddSingleton<AboutViewModel>();
 
-                // Business services
+                // Services
                 services.AddSingleton<ILogManager, LogManager>();
                 services.AddSingleton<IPowerShellScriptManager, PowerShellScriptManager>();
-                services.AddSingleton<PowerShellManager>();
                 services.AddSingleton<ConnectionManager>();
                 services.AddSingleton<IProfileManager, JsonProfileManager>();
 
+                // Hosted services
+                services.AddHostedService<ApplicationHostService>();
+            }
+            catch (Exception ex)
+            {
+                LogStartupError(ex);
+                throw;
+            }
+        }
 
-                // Additional services for enhanced functionality
-                services.AddSingleton<ISnackbarService, SnackbarService>();
-                services.AddSingleton<IContentDialogService, ContentDialogService>();
-
-            })
-            .Build();
-        private void RegisterPowerShellScripts(IPowerShellScriptManager scriptManager)
+        private static void LogStartupError(Exception ex)
         {
-            scriptManager.RegisterScript(
-                "Set-Dyn_Env_TagPermissions",
-                @"Scripts\Set-Dyn_Env_TagPermissions.ps1"
+            string logPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "VCenterMigrationTool",
+                "startup_error.log"
             );
 
-            // Register other scripts as needed
-            // scriptManager.RegisterScript("ScriptName", @"Scripts\ScriptName.ps1");
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+
+                File.WriteAllText(logPath, $@"Startup Error at {DateTime.Now}:
+Exception Type: {ex.GetType().FullName}
+Message: {ex.Message}
+Stack Trace: {ex.StackTrace}
+
+Inner Exception:
+{ex.InnerException?.Message ?? "No inner exception"}");
+
+                // Also output to debug console
+                System.Diagnostics.Debug.WriteLine($"Startup Error: {ex}");
+            }
+            catch
+            {
+                // Fallback error logging
+                System.Diagnostics.Debug.WriteLine($"Critical Startup Error: {ex}");
+            }
         }
+
         public static IServiceProvider Services => _host.Services;
 
         protected override async void OnStartup(StartupEventArgs e)
         {
-            base.OnStartup(e);
-
             try
             {
+                base.OnStartup(e);
+
                 await _host.StartAsync();
+
+                // Register PowerShell scripts
                 var scriptManager = _host.Services.GetRequiredService<IPowerShellScriptManager>();
                 RegisterPowerShellScripts(scriptManager);
-                // Initialize logging
-                InitializeLogging();
 
                 // Get and show the main window
                 var mainWindow = _host.Services.GetRequiredService<INavigationWindow>();
-
-                // Replace ShowWindow() with explicit Show() and Activate()
-                if (mainWindow is Window window)
-                {
-                    window.Show();  // Explicitly show the window
-                    window.Activate();  // Bring to foreground
-                }
+                mainWindow.ShowWindow();
 
                 // Navigate to dashboard by default
                 mainWindow.Navigate(typeof(DashboardPage));
 
-                // Apply theme based on system preference
+                // Apply theme
                 ApplyTheme();
             }
             catch (Exception ex)
             {
+                LogStartupError(ex);
+
                 MessageBox.Show(
                     $"Failed to start application: {ex.Message}\n\nDetails: {ex}",
                     "Startup Error",
-                    MessageBoxButton.OK,
+                    System.Windows.MessageBoxButton.OK,
                     MessageBoxImage.Error
                 );
-                Environment.Exit(1);
+
+                Shutdown(1);
             }
         }
 
-        protected override async void OnExit(ExitEventArgs e)
+        private void RegisterPowerShellScripts(IPowerShellScriptManager scriptManager)
         {
             try
             {
-                // Save any pending changes
-                await SaveApplicationStateAsync();
+                scriptManager.RegisterScript(
+                    "Set-Dyn_Env_TagPermissions",
+                    @"Scripts\Set-Dyn_Env_TagPermissions.ps1"
+                );
 
-                await _host.StopAsync();
-                _host.Dispose();
+                // Add other script registrations as needed
             }
             catch (Exception ex)
             {
-                // Log error but don't prevent shutdown
-                System.Diagnostics.Debug.WriteLine($"Error during shutdown: {ex.Message}");
-            }
-            finally
-            {
-                base.OnExit(e);
+                System.Diagnostics.Debug.WriteLine($"Script registration error: {ex.Message}");
             }
         }
 
-        private void OnDispatcherUnhandledException(object sender, System.Windows.Threading.DispatcherUnhandledExceptionEventArgs e)
+        private void ApplyTheme()
         {
             try
             {
-                // Log the exception
-                LogException(e.Exception);
+                var themeService = _host.Services.GetRequiredService<IThemeService>();
 
-                var message = $"An unhandled exception occurred:\n\n{e.Exception.Message}";
-
-                if (e.Exception.InnerException != null)
-                {
-                    message += $"\n\nInner Exception: {e.Exception.InnerException.Message}";
-                }
-
-                var result = MessageBox.Show(
-                    $"{message}\n\nWould you like to continue running the application?",
-                    "Unhandled Exception",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Error);
-
-                e.Handled = result == MessageBoxResult.Yes;
-            }
-            catch
-            {
-                // If we can't even show the error dialog, just mark as handled
-                e.Handled = true;
-            }
-        }
-
-        private void InitializeLogging()
-        {
-            try
-            {
-                var appConfig = _host.Services.GetRequiredService<AppConfig>();
-                var logDirectory = Path.GetFullPath(appConfig.LogPath);
-
-                if (!Directory.Exists(logDirectory))
-                {
-                    Directory.CreateDirectory(logDirectory);
-                }
-
-                // Set up global exception handling
-                AppDomain.CurrentDomain.UnhandledException += OnUnhandledException;
-                DispatcherUnhandledException += OnDispatcherUnhandledException;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Failed to initialize logging: {ex.Message}");
-            }
-        }
-
-        private void OnUnhandledException(object sender, UnhandledExceptionEventArgs e)
-        {
-            if (e.ExceptionObject is Exception exception)
-            {
-                LogException(exception);
-
-                MessageBox.Show(
-                    $"A fatal error occurred: {exception.Message}\n\nThe application will now exit.",
-                    "Fatal Error",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Stop);
-            }
-        }
-
-        private static void ApplyTheme()
-        {
-            try
-            {
-                // Get the main window
-                var mainWindow = _host.Services.GetRequiredService<INavigationWindow>();
-
-                // Apply dark theme dynamically
+                // Alternative ways to set theme
+                themeService.SetTheme(Wpf.Ui.Appearance.ApplicationTheme.Dark);
+                // OR
                 Wpf.Ui.Appearance.ApplicationThemeManager.Apply(
                     Wpf.Ui.Appearance.ApplicationTheme.Dark,
                     Wpf.Ui.Controls.WindowBackdropType.Mica,
@@ -246,51 +216,25 @@ namespace UiDesktopApp2
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to apply theme: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Theme application error: {ex.Message}");
             }
         }
 
-        private static async Task SaveApplicationStateAsync()
+        protected override async void OnExit(ExitEventArgs e)
         {
             try
             {
-                // Save any pending configuration changes
-                var appConfig = _host.Services.GetRequiredService<AppConfig>();
-
-                // In a real implementation, you might save user preferences, window positions, etc.
-                await Task.Delay(100); // Placeholder for actual save operations
+                await _host.StopAsync();
+                _host.Dispose();
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to save application state: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Shutdown error: {ex.Message}");
             }
-        }
-
-        private static void LogException(Exception exception)
-        {
-            try
+            finally
             {
-                var appConfig = _host.Services.GetRequiredService<AppConfig>();
-                var logFile = Path.Combine(appConfig.LogPath, $"error_{DateTime.Now:yyyy-MM-dd}.log");
-
-                var logEntry = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] ERROR: {exception}\n\n";
-                File.AppendAllText(logFile, logEntry);
+                base.OnExit(e);
             }
-            catch
-            {
-                // If we can't log to file, at least output to debug
-                System.Diagnostics.Debug.WriteLine($"Exception: {exception}");
-            }
-        }
-
-        public static T GetService<T>() where T : class
-        {
-            return _host.Services.GetService<T>() ?? throw new InvalidOperationException($"Service of type {typeof(T).Name} not found.");
-        }
-
-        public static object GetService(Type serviceType)
-        {
-            return _host.Services.GetService(serviceType) ?? throw new InvalidOperationException($"Service of type {serviceType.Name} not found.");
         }
     }
 }

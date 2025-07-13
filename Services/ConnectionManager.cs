@@ -1,7 +1,7 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.ObjectModel;
-using System.Windows.Input;
+using System.Threading.Tasks;
 using UiDesktopApp2.Helpers;
 using UiDesktopApp2.Models;
 using UiDesktopApp2.Services;
@@ -10,86 +10,110 @@ namespace UiDesktopApp2.Services
 {
     public class ConnectionManager
     {
-        public ObservableCollection<ConnectionProfile> ServerProfiles { get; set; } = new();
+        private readonly PowerShellManager _powerShellManager;
+        private readonly IProfileManager _profileManager;
+        private readonly ILogger<ConnectionManager> _logger;
+
+        public ObservableCollection<ConnectionProfile> ServerProfiles { get; } = new();
 
         public ConnectionProfile? SelectedSourceProfile { get; set; }
 
         public ConnectionProfile? SelectedDestinationProfile { get; set; }
 
-        public ICommand OpenProfileManagerCommand { get; }
-
-        public ICommand TestSourceConnectionCommand { get; }
-
-        private readonly IProfileManager _profileManager;
-
-        public ConnectionManager(IProfileManager profileManager)
+        public ConnectionManager(
+            PowerShellManager powerShellManager,
+            IProfileManager profileManager,
+            ILogger<ConnectionManager> logger)
         {
-            _profileManager = profileManager;
+            _powerShellManager = powerShellManager ??
+                throw new ArgumentNullException(nameof(powerShellManager));
+            _profileManager = profileManager ??
+                throw new ArgumentNullException(nameof(profileManager));
+            _logger = logger ??
+                throw new ArgumentNullException(nameof(logger));
 
-            // Initialize profiles from profile manager
             LoadProfiles();
-
-            // Initialize commands
-            OpenProfileManagerCommand = new RelayCommand(OpenProfileManager);
-            TestSourceConnectionCommand = new RelayCommand(TestSourceConnection);
         }
 
         private void LoadProfiles()
         {
-            var profiles = _profileManager.GetAllProfiles();
-            ServerProfiles.Clear();
-            foreach (var profile in profiles)
+            try
             {
-                ServerProfiles.Add(profile);
+                ServerProfiles.Clear();
+                var profiles = _profileManager.GetAllProfiles();
+
+                foreach (var profile in profiles)
+                {
+                    ServerProfiles.Add(profile);
+                }
+
+                _logger.LogInformation($"Loaded {ServerProfiles.Count} connection profiles");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading connection profiles");
             }
         }
-
-        private void OpenProfileManager()
-        {
-            // Implement profile manager opening logic
-            // This could be a dialog or a new window
-        }
-
-        private void TestSourceConnection()
-        {
-            if (SelectedSourceProfile == null)
-            {
-                // Handle no profile selected
-                return;
-            }
-
-            // Implement connection testing logic
-            // You might want to use PowerShell or another connection method
-        }
-
-        // Additional methods for managing profiles
-        // Add the TestConnectionAsync method
 
         public async Task<ConnectionResult> TestConnectionAsync(ConnectionProfile profile)
         {
             try
             {
+                _logger.LogInformation($"Testing connection for profile: {profile.Name}");
+
                 // Use PowerShellManager to test connection
-                return await _powerShellManager.TestVCenterConnectionAsync(profile);
+                var result = await _powerShellManager.TestVCenterConnectionAsync(profile);
+
+                _logger.LogInformation($"Connection test result for {profile.Name}: {result.IsSuccessful}");
+
+                return result;
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, $"Connection test failed for profile: {profile.Name}");
+
                 return new ConnectionResult(
                     isSuccessful: false,
                     errorMessage: $"Connection test failed: {ex.Message}"
                 );
             }
         }
+
         public void AddProfile(ConnectionProfile profile)
         {
-            _profileManager.SaveProfile(profile);
-            LoadProfiles();
+            try
+            {
+                _profileManager.SaveProfile(profile);
+                LoadProfiles();
+
+                _logger.LogInformation($"Added new connection profile: {profile.Name}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error adding profile: {profile.Name}");
+                throw;
+            }
         }
 
         public void RemoveProfile(string profileName)
         {
-            _profileManager.DeleteProfile(profileName);
-            LoadProfiles();
+            try
+            {
+                _profileManager.DeleteProfile(profileName);
+                LoadProfiles();
+
+                _logger.LogInformation($"Removed connection profile: {profileName}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error removing profile: {profileName}");
+                throw;
+            }
+        }
+
+        public ConnectionProfile? GetProfileByName(string profileName)
+        {
+            return ServerProfiles.FirstOrDefault(p => p.Name == profileName);
         }
     }
 }
