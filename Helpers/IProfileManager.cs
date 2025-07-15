@@ -10,9 +10,8 @@ namespace UiDesktopApp2.Helpers
     public interface IProfileManager
     {
         IEnumerable<ConnectionProfile> GetAllProfiles();
-        ConnectionProfile GetProfile(string name);
+        ConnectionProfile? GetProfile(string name);
         void SaveProfile(ConnectionProfile profile);
         void DeleteProfile(string name);
-        bool ProfileExists(string name);
     }
 }

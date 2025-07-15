@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Windows;
+using System.Windows.Threading;
 using UiDesktopApp2.Helpers;
 using UiDesktopApp2.Models;
 using UiDesktopApp2.Services;
@@ -17,13 +18,15 @@ using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
 using MessageBox = System.Windows.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
+using MessageBoxImage = System.Windows.MessageBoxImage;
 
 namespace UiDesktopApp2
 {
     public partial class App : Application
     {
         private static readonly IHost _host;
-
+        private ILogger<App>? _logger;
         static App()
         {
             try
@@ -58,59 +61,166 @@ namespace UiDesktopApp2
             }
         }
 
-        private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
+        protected override void OnStartup(StartupEventArgs e)
         {
+            base.OnStartup(e);
+
+            // Initialize logger
+            _logger = _host.Services.GetService<ILogger<App>>();
+
+            // Setup global exception handling
+            DispatcherUnhandledException += OnDispatcherUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
+                #pragma warning disable CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+                #pragma warning restore CS8622 // Nullability of reference types in type of parameter doesn't match the target delegate (possibly because of nullability attributes).
+
             try
             {
-                // App configuration
-                var appConfig = context.Configuration.GetSection("AppConfig").Get<AppConfig>() ?? new AppConfig();
-                services.AddSingleton(appConfig);
+                _host.Start();
 
-                // Logging
-                services.AddLogging();
+                // Register PowerShell scripts
+                var scriptManager = _host.Services.GetRequiredService<IPowerShellScriptManager>();
+                RegisterPowerShellScripts(scriptManager);
 
-                // WPF UI services
-                services.AddSingleton<INavigationViewPageProvider, NavigationViewPageProvider>();
-                services.AddSingleton<IThemeService, ThemeService>();
-                services.AddSingleton<ITaskBarService, TaskBarService>();
-                services.AddSingleton<INavigationService, NavigationService>();
+                // Get and show the main window
+                var mainWindow = _host.Services.GetRequiredService<INavigationWindow>();
+                mainWindow.ShowWindow();
 
-                // Main window and navigation
-                services.AddSingleton<INavigationWindow, MainWindow>();
-                services.AddSingleton<MainWindowViewModel>();
+                // Navigate to dashboard by default
+                mainWindow.Navigate(typeof(DashboardPage));
 
-                // Pages and ViewModels
-                services.AddSingleton<DashboardPage>();
-                services.AddSingleton<DashboardViewModel>();
-                services.AddSingleton<ConnectionPage>();
-                services.AddSingleton<ConnectionViewModel>();
-                services.AddSingleton<DataPage>();
-                services.AddSingleton<DataViewModel>();
-                services.AddSingleton<MigrationPage>();
-                services.AddSingleton<MigrationViewModel>();
-                services.AddSingleton<BackupPage>();
-                services.AddSingleton<BackupViewModel>();
-                services.AddSingleton<LogsPage>();
-                services.AddSingleton<LogsViewModel>();
-                services.AddSingleton<SettingsPage>();
-                services.AddSingleton<SettingsViewModel>();
-                services.AddSingleton<AboutPage>();
-                services.AddSingleton<AboutViewModel>();
-
-                // Services
-                services.AddSingleton<ILogManager, LogManager>();
-                services.AddSingleton<IPowerShellScriptManager, PowerShellScriptManager>();
-                services.AddSingleton<ConnectionManager>();
-                services.AddSingleton<IProfileManager, JsonProfileManager>();
-
-                // Hosted services
-                services.AddHostedService<ApplicationHostService>();
+                // Apply theme
+                ApplyTheme();
             }
             catch (Exception ex)
             {
-                LogStartupError(ex);
-                throw;
+                HandleCriticalStartupError(ex);
             }
+        }
+
+        public void RegisterPowerShellScripts(IPowerShellScriptManager scriptManager)
+        {
+            try
+            {
+                // Verify script exists before registering
+                string scriptPath = Path.Combine("Scripts", "Set-Dyn_Env_TagPermissions.ps1");
+                string fullPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptPath));
+
+                if (!File.Exists(fullPath))
+                {
+                    throw new FileNotFoundException($"Critical error: PowerShell script not found at {fullPath}");
+                }
+
+                scriptManager.RegisterScript("Set-Dyn_Env_TagPermissions", scriptPath);
+            }
+            catch (Exception ex)
+            {
+                // This will fail fast if scripts are missing
+                MessageBox.Show($"FATAL ERROR: Could not register PowerShell scripts.\n{ex.Message}",
+                              "Startup Error",
+                              MessageBoxButton.OK,
+                              MessageBoxImage.Error);
+                Environment.Exit(1);
+            }
+        }
+
+        private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
+        {
+            e.Handled = true;
+            HandleException(e.Exception, "UI Thread");
+        }
+
+        private void OnAppDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            HandleException((Exception)e.ExceptionObject, "AppDomain");
+        }
+
+        private void OnUnobservedTaskException(object sender, UnobservedTaskExceptionEventArgs e)
+        {
+            e.SetObserved();
+            HandleException(e.Exception, "Background Task");
+        }
+
+        private void HandleException(Exception ex, string source)
+        {
+            try
+            {
+                _logger?.LogError(ex, $"[{source}] Unhandled exception occurred");
+
+                MessageBox.Show(
+                    $"An unexpected error occurred:\n\n{ex.Message}\n\nCheck logs for details.",
+                    "Application Error",
+                    System.Windows.MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            catch (Exception logEx)
+            {
+                System.Diagnostics.Debug.WriteLine($"Failed to handle exception: {logEx}");
+                System.Diagnostics.Debug.WriteLine($"Original exception: {ex}");
+            }
+        }
+
+        private void HandleCriticalStartupError(Exception ex)
+        {
+            LogStartupError(ex);
+            MessageBox.Show(
+                $"Failed to start application: {ex.Message}\n\nDetails: {ex}",
+                "Startup Error",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(1);
+        }
+
+        private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
+        {
+            // App config
+            var appConfig = context.Configuration.GetSection("AppConfig").Get<AppConfig>() ?? new AppConfig();
+            services.AddSingleton(appConfig);
+
+            // Logging
+            services.AddLogging();
+
+            // WPF UI services
+            services.AddSingleton<INavigationViewPageProvider, NavigationViewPageProvider>();
+            services.AddSingleton<IThemeService, ThemeService>();
+            services.AddSingleton<ITaskBarService, TaskBarService>();
+            services.AddSingleton<INavigationService, NavigationService>();
+
+            // Windows and viewmodels
+            services.AddSingleton<MainWindowViewModel>();
+            services.AddSingleton<INavigationWindow, MainWindow>();
+
+            // Pages and viewmodels
+            services.AddSingleton<DashboardPage>();
+            services.AddSingleton<DashboardViewModel>();
+            services.AddSingleton<ConnectionPage>();
+            services.AddSingleton<ConnectionViewModel>();
+            services.AddSingleton<DataPage>();
+            services.AddSingleton<DataViewModel>();
+            services.AddSingleton<MigrationPage>();
+            services.AddSingleton<MigrationViewModel>();
+            services.AddSingleton<BackupPage>();
+            services.AddSingleton<BackupViewModel>();
+            services.AddSingleton<LogsPage>();
+            services.AddSingleton<LogsViewModel>();
+            services.AddSingleton<SettingsPage>();
+            services.AddSingleton<SettingsViewModel>();
+            services.AddSingleton<AboutPage>();
+            services.AddSingleton<AboutViewModel>();
+            // Profile Management
+            services.AddSingleton<IProfileManager, JsonProfileManager>();
+
+
+            // Application services
+            services.AddSingleton<ILogManager, LogManager>();
+            services.AddSingleton<IPowerShellScriptManager, PowerShellScriptManager>();
+            services.AddSingleton<PowerShellManager>();
+            services.AddSingleton<ICredentialManager, WindowsCredentialManager>();
+            services.AddSingleton<ConnectionManager>();
+
+            // Hosted services
+            services.AddHostedService<ApplicationHostService>();
         }
 
         private static void LogStartupError(Exception ex)
@@ -143,97 +253,23 @@ Inner Exception:
             }
         }
 
-        public static IServiceProvider Services => _host.Services;
-
-        protected override async void OnStartup(StartupEventArgs e)
-        {
-            try
-            {
-                base.OnStartup(e);
-
-                await _host.StartAsync();
-
-                // Register PowerShell scripts
-                var scriptManager = _host.Services.GetRequiredService<IPowerShellScriptManager>();
-                RegisterPowerShellScripts(scriptManager);
-
-                // Get and show the main window
-                var mainWindow = _host.Services.GetRequiredService<INavigationWindow>();
-                mainWindow.ShowWindow();
-
-                // Navigate to dashboard by default
-                mainWindow.Navigate(typeof(DashboardPage));
-
-                // Apply theme
-                ApplyTheme();
-            }
-            catch (Exception ex)
-            {
-                LogStartupError(ex);
-
-                MessageBox.Show(
-                    $"Failed to start application: {ex.Message}\n\nDetails: {ex}",
-                    "Startup Error",
-                    System.Windows.MessageBoxButton.OK,
-                    MessageBoxImage.Error
-                );
-
-                Shutdown(1);
-            }
-        }
-
-        private void RegisterPowerShellScripts(IPowerShellScriptManager scriptManager)
-        {
-            try
-            {
-                scriptManager.RegisterScript(
-                    "Set-Dyn_Env_TagPermissions",
-                    @"Scripts\Set-Dyn_Env_TagPermissions.ps1"
-                );
-
-                // Add other script registrations as needed
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Script registration error: {ex.Message}");
-            }
-        }
-
         private void ApplyTheme()
         {
             try
             {
                 var themeService = _host.Services.GetRequiredService<IThemeService>();
 
-                // Alternative ways to set theme
                 themeService.SetTheme(Wpf.Ui.Appearance.ApplicationTheme.Dark);
-                // OR
-                Wpf.Ui.Appearance.ApplicationThemeManager.Apply(
-                    Wpf.Ui.Appearance.ApplicationTheme.Dark,
-                    Wpf.Ui.Controls.WindowBackdropType.Mica,
-                    true
-                );
+                // Or use ApplicationThemeManager.Apply if preferred
+                // Wpf.Ui.Appearance.ApplicationThemeManager.Apply(
+                //     Wpf.Ui.Appearance.ApplicationTheme.Dark,
+                //     Wpf.Ui.Controls.WindowBackdropType.Mica,
+                //     true
+                // );
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Theme application error: {ex.Message}");
-            }
-        }
-
-        protected override async void OnExit(ExitEventArgs e)
-        {
-            try
-            {
-                await _host.StopAsync();
-                _host.Dispose();
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Shutdown error: {ex.Message}");
-            }
-            finally
-            {
-                base.OnExit(e);
             }
         }
     }

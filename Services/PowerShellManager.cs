@@ -1,84 +1,84 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
-using UiDesktopApp2.Helpers;
+using System.Management.Automation;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using UiDesktopApp2.Helpers;
+using UiDesktopApp2.Models;
 
 namespace UiDesktopApp2.Services
 {
-    public class PowerShellScriptManager : IPowerShellScriptManager
+    public class PowerShellManager
     {
-        private readonly Dictionary<string, string> _scripts = new();
-        private readonly ILogger<PowerShellScriptManager> _logger;
+        private readonly ILogger<PowerShellManager> _logger;
+        private readonly IPowerShellScriptManager _scriptManager;
 
-        public PowerShellScriptManager(ILogger<PowerShellScriptManager> logger)
+        public PowerShellManager(
+            ILogger<PowerShellManager> logger,
+            IPowerShellScriptManager scriptManager)
         {
             _logger = logger;
+            _scriptManager = scriptManager;
         }
 
-        public void RegisterScript(string scriptName, string scriptPath)
+        public async Task<ConnectionResult> TestVCenterConnectionAsync(ConnectionProfile profile, PSCredential credential)
         {
             try
             {
-                // Ensure the script path is a full path
-                string fullPath = Path.IsPathRooted(scriptPath)
-                    ? scriptPath
-                    : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptPath);
-
-                // Validate script file exists
-                if (!File.Exists(fullPath))
+                var parameters = new Dictionary<string, object>
                 {
-                    _logger.LogWarning($"PowerShell script not found: {fullPath}");
-                    throw new FileNotFoundException($"PowerShell script not found: {fullPath}", fullPath);
-                }
+                    { "vCenterServer", profile.ServerAddress },
+                    { "Credential", credential },
+                    { "Environment", "TEST" }
+                };
 
-                _scripts[scriptName] = fullPath;
-                _logger.LogInformation($"Registered PowerShell script: {scriptName} at {fullPath}");
+                var result = await ExecuteScriptAsync("Test-VCenterConnection", parameters);
+                return ParseConnectionResult(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error registering script {scriptName}");
-                throw;
+                _logger.LogError(ex, "vCenter connection test failed");
+                return new ConnectionResult(false, errorMessage: ex.Message);
             }
         }
 
-        public string GetScriptPath(string scriptName)
+        private ConnectionResult ParseConnectionResult(string scriptOutput)
+        {
+            // Simplified version without ExtractBetween
+            if (scriptOutput.Contains("Connected successfully"))
+            {
+                // Extract version more simply
+                var versionStart = scriptOutput.IndexOf("Version:") + "Version:".Length;
+                var versionEnd = scriptOutput.IndexOf('\n', versionStart);
+                var version = versionEnd > versionStart
+                    ? scriptOutput.Substring(versionStart, versionEnd - versionStart).Trim()
+                    : "unknown";
+
+                return new ConnectionResult(true, version);
+            }
+            return new ConnectionResult(false, errorMessage: scriptOutput);
+        }
+
+        private async Task<string> ExecuteScriptAsync(string scriptName, Dictionary<string, object> parameters)
         {
             try
             {
-                if (_scripts.TryGetValue(scriptName, out var scriptPath))
+                var scriptPath = _scriptManager.GetScriptPath(scriptName);
+                using var ps = PowerShell.Create();
+
+                ps.AddCommand(scriptPath);
+                foreach (var param in parameters)
                 {
-                    return scriptPath;
+                    ps.AddParameter(param.Key, param.Value);
                 }
 
-                _logger.LogWarning($"No script registered with name: {scriptName}");
-                throw new KeyNotFoundException($"No script registered with name: {scriptName}");
+                var results = await Task.Run(() => ps.Invoke());
+                return string.Join(Environment.NewLine, results.Select(r => r?.ToString() ?? string.Empty));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error retrieving script path for {scriptName}");
+                _logger.LogError(ex, "PowerShell script execution failed");
                 throw;
-            }
-        }
-
-        /// <summary>
-        /// Lists all registered scripts
-        /// </summary>
-        /// <returns>Dictionary of registered script names and their paths</returns>
-        public IReadOnlyDictionary<string, string> GetRegisteredScripts()
-        {
-            return new Dictionary<string, string>(_scripts);
-        }
-
-        /// <summary>
-        /// Bulk script registration method
-        /// </summary>
-        /// <param name="scripts">Dictionary of script names and paths</param>
-        public void RegisterScripts(Dictionary<string, string> scripts)
-        {
-            foreach (var script in scripts)
-            {
-                RegisterScript(script.Key, script.Value);
             }
         }
     }

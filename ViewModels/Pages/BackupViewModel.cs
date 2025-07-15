@@ -10,6 +10,10 @@ using UiDesktopApp2.Models;
 using UiDesktopApp2.Services;
 using UiDesktopApp2.Helpers;
 using Wpf.Ui.Controls;
+using Wpf.Ui.Abstractions;
+using Wpf.Ui.Appearance;
+using Wpf.Ui.Extensions;
+
 
 namespace UiDesktopApp2.ViewModels.Pages
 {

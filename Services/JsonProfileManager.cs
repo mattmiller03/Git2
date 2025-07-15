@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using UiDesktopApp2.Helpers;
 using UiDesktopApp2.Models;
 
@@ -10,99 +11,138 @@ namespace UiDesktopApp2.Services
 {
     public class JsonProfileManager : IProfileManager
     {
-        private readonly string _filePath;
-        public List<ConnectionProfile> _profiles;
+        private readonly ILogger<JsonProfileManager> _logger;
+        private readonly string _profilesFilePath;
+        private List<ConnectionProfile> _profiles = new();
 
-        public JsonProfileManager()
+        public JsonProfileManager(ILogger<JsonProfileManager> logger)
         {
-            _filePath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "VCenterMigrationTool",
-                "profiles.json"
-            );
+            _logger = logger;
 
-            // Ensure directory exists
-            Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
+            // Store profiles in app data folder
+            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var appFolder = Path.Combine(appDataPath, "UiDesktopApp2");
+            _profilesFilePath = Path.Combine(appFolder, "connection_profiles.json");
 
-            // Load or initialize profiles
-            _profiles = LoadProfiles();
+            Directory.CreateDirectory(appFolder);
+            LoadProfiles();
         }
 
-        public List<ConnectionProfile> LoadProfiles()
+        public IEnumerable<ConnectionProfile> GetAllProfiles()
         {
-            try
-            {
-                if (File.Exists(_filePath))
-                {
-                    var json = File.ReadAllText(_filePath);
-                    return JsonSerializer.Deserialize<List<ConnectionProfile>>(json)
-                           ?? new List<ConnectionProfile>();
-                }
-                return new List<ConnectionProfile>();
-            }
-            catch (Exception ex)
-            {
-                // Log the error or handle it appropriately
-                System.Diagnostics.Debug.WriteLine($"Error loading profiles: {ex.Message}");
-                return new List<ConnectionProfile>();
-            }
+            return _profiles.AsReadOnly();
         }
 
-        public IEnumerable<ConnectionProfile> GetAllProfiles() =>
-            _profiles.ToList();
-
-        public ConnectionProfile? GetProfile(string name) =>
-            _profiles.FirstOrDefault(p => p.Name == name);
+        public ConnectionProfile? GetProfile(string name)
+        {
+            return _profiles.FirstOrDefault(p =>
+                string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+        }
 
         public void SaveProfile(ConnectionProfile profile)
         {
-            if (profile == null)
-                throw new ArgumentNullException(nameof(profile));
+            try
+            {
+                if (profile == null)
+                    throw new ArgumentNullException(nameof(profile));
 
-            // Remove existing profile with the same name
-            _profiles.RemoveAll(p => p.Name == profile.Name);
+                // Validate required fields
+                if (string.IsNullOrWhiteSpace(profile.Name))
+                    throw new ArgumentException("Profile name cannot be empty");
 
-            // Add new or updated profile
-            _profiles.Add(profile);
-            Persist();
+                // Check for duplicate names
+                var existingProfile = _profiles
+                    .FirstOrDefault(p =>
+                        string.Equals(p.Name, profile.Name, StringComparison.OrdinalIgnoreCase) &&
+                        !ReferenceEquals(p, profile));
+
+                if (existingProfile != null)
+                    throw new InvalidOperationException($"Profile with name '{profile.Name}' already exists");
+
+                // Add or update profile
+                var index = _profiles.FindIndex(p => ReferenceEquals(p, profile));
+                if (index >= 0)
+                {
+                    _profiles[index] = profile;
+                }
+                else
+                {
+                    _profiles.Add(profile);
+                }
+
+                SaveToFile();
+                _logger.LogInformation("Saved profile: {ProfileName}", profile.Name);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving profile");
+                throw;
+            }
         }
 
         public void DeleteProfile(string name)
         {
-            if (string.IsNullOrWhiteSpace(name))
-                throw new ArgumentException("Profile name cannot be null or empty", nameof(name));
-
-            int removedCount = _profiles.RemoveAll(p => p.Name == name);
-
-            if (removedCount > 0)
-            {
-                Persist();
-            }
-        }
-
-        private void Persist()
-        {
             try
             {
-                var json = JsonSerializer.Serialize(_profiles, new JsonSerializerOptions
+                var profile = GetProfile(name);
+                if (profile != null)
                 {
-                    WriteIndented = true
-                });
-
-                // Ensure directory exists before writing
-                Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
-
-                File.WriteAllText(_filePath, json);
+                    _profiles.Remove(profile);
+                    SaveToFile();
+                    _logger.LogInformation("Deleted profile: {ProfileName}", name);
+                }
             }
             catch (Exception ex)
             {
-                // Log the error or handle it appropriately
-                System.Diagnostics.Debug.WriteLine($"Error saving profiles: {ex.Message}");
+                _logger.LogError(ex, "Error deleting profile: {ProfileName}", name);
+                throw;
             }
         }
 
-        // Optional: Method to check if a profile exists
-        public bool ProfileExists(string name) =>
-            _profiles.Any(p => p.Name == name);
+        private void LoadProfiles()
+        {
+            try
+            {
+                if (!File.Exists(_profilesFilePath))
+                {
+                    _profiles = new List<ConnectionProfile>();
+                    return;
+                }
+
+                var json = File.ReadAllText(_profilesFilePath);
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    WriteIndented = true
+                };
+
+                _profiles = JsonSerializer.Deserialize<List<ConnectionProfile>>(json, options) ?? new List<ConnectionProfile>();
+                _logger.LogInformation("Loaded {Count} profiles", _profiles.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading profiles");
+                _profiles = new List<ConnectionProfile>();
+            }
+        }
+
+        private void SaveToFile()
+        {
+            try
+            {
+                var options = new JsonSerializerOptions
+                {
+                    WriteIndented = true
+                };
+
+                var json = JsonSerializer.Serialize(_profiles, options);
+                File.WriteAllText(_profilesFilePath, json);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving profiles to file");
+                throw;
+            }
+        }
     }
 }

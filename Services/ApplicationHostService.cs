@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using UiDesktopApp2.Views.Pages;
 using UiDesktopApp2.Views.Windows;
 using Wpf.Ui;
+using UiDesktopApp2.Services;
 
 public class ApplicationHostService : IHostedService
 {

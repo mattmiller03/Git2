@@ -1,11 +1,21 @@
-﻿namespace UiDesktopApp2.Models
+﻿// Models/ConnectionProfile.cs
+using CommunityToolkit.Mvvm.ComponentModel;
+using System.ComponentModel;
+
+namespace UiDesktopApp2.Models
 {
-    public class ConnectionProfile
+    public partial class ConnectionProfile : ObservableObject
     {
-        public string Name { get; set; } = string.Empty;
-        public string ServerAddress { get; set; } = string.Empty;
-        public string Username { get; set; } = string.Empty;
-        public string Password { get; set; } = string.Empty; // In production, this should be encrypted
-        public bool IsDefault { get; set; }
+        [ObservableProperty]
+        private string _name = string.Empty;
+
+        [ObservableProperty]
+        private string _serverAddress = string.Empty;
+
+        [ObservableProperty]
+        private string _username = string.Empty;
+
+        [ObservableProperty]
+        private string _password = string.Empty;
     }
 }

@@ -1,10 +1,11 @@
-﻿using UiDesktopApp2.ViewModels.Windows;
+﻿using Microsoft.Extensions.DependencyInjection;
+using System;
+using System.Windows;
+using UiDesktopApp2.ViewModels.Windows;
 using Wpf.Ui;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
-using System;
-using System.Windows;
 
 namespace UiDesktopApp2.Views.Windows
 {
@@ -15,22 +16,23 @@ namespace UiDesktopApp2.Views.Windows
         public MainWindow(
             MainWindowViewModel viewModel,
             INavigationViewPageProvider navigationViewPageProvider,
-            INavigationService navigationService
-        )
+            INavigationService navigationService,
+            IThemeService themeService)
         {
             ViewModel = viewModel;
             DataContext = this;
 
-            SystemThemeWatcher.Watch(this);
-
             InitializeComponent();
-            SetPageService(navigationViewPageProvider);
 
+            // Set navigation
+            SetPageService(navigationViewPageProvider);
             navigationService.SetNavigationControl(RootNavigation);
+
+            // Apply theme (using default theme)
+            themeService.SetTheme(ApplicationTheme.Dark); // or ApplicationTheme.Light
         }
 
-        #region INavigationWindow methods
-
+        #region INavigationWindow implementation
         public INavigationView GetNavigation() => RootNavigation;
 
         public bool Navigate(Type pageType) => RootNavigation.Navigate(pageType);
@@ -44,10 +46,9 @@ namespace UiDesktopApp2.Views.Windows
 
         public void SetServiceProvider(IServiceProvider serviceProvider)
         {
-            // Implementation if needed for additional services
+            // Implementation if needed
         }
-
-        #endregion INavigationWindow methods
+        #endregion
 
         protected override void OnClosed(EventArgs e)
         {

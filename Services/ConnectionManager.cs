@@ -1,119 +1,104 @@
-﻿using Microsoft.Extensions.Logging;
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
+using System.Management.Automation;
+using System.Security;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using UiDesktopApp2.Helpers;
 using UiDesktopApp2.Models;
-using UiDesktopApp2.Services;
 
 namespace UiDesktopApp2.Services
 {
     public class ConnectionManager
     {
-        private readonly PowerShellManager _powerShellManager;
-        private readonly IProfileManager _profileManager;
         private readonly ILogger<ConnectionManager> _logger;
+        private readonly IProfileManager _profileManager;
+        private readonly ICredentialManager _credentialManager;
+        private readonly PowerShellManager _powerShellManager;
 
         public ObservableCollection<ConnectionProfile> ServerProfiles { get; } = new();
 
-        public ConnectionProfile? SelectedSourceProfile { get; set; }
-
-        public ConnectionProfile? SelectedDestinationProfile { get; set; }
-
         public ConnectionManager(
-            PowerShellManager powerShellManager,
+            ILogger<ConnectionManager> logger,
             IProfileManager profileManager,
-            ILogger<ConnectionManager> logger)
+            ICredentialManager credentialManager,
+            PowerShellManager powerShellManager)
         {
-            _powerShellManager = powerShellManager ??
-                throw new ArgumentNullException(nameof(powerShellManager));
-            _profileManager = profileManager ??
-                throw new ArgumentNullException(nameof(profileManager));
-            _logger = logger ??
-                throw new ArgumentNullException(nameof(logger));
-
+            _logger = logger;
+            _profileManager = profileManager;
+            _credentialManager = credentialManager;
+            _powerShellManager = powerShellManager;
             LoadProfiles();
-        }
-
-        private void LoadProfiles()
-        {
-            try
-            {
-                ServerProfiles.Clear();
-                var profiles = _profileManager.GetAllProfiles();
-
-                foreach (var profile in profiles)
-                {
-                    ServerProfiles.Add(profile);
-                }
-
-                _logger.LogInformation($"Loaded {ServerProfiles.Count} connection profiles");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading connection profiles");
-            }
         }
 
         public async Task<ConnectionResult> TestConnectionAsync(ConnectionProfile profile)
         {
             try
             {
-                _logger.LogInformation($"Testing connection for profile: {profile.Name}");
+                var securePassword = _credentialManager.GetPassword(profile.Name);
+                if (securePassword.Length == 0)
+                {
+                    return new ConnectionResult(false, errorMessage: "No saved credentials found");
+                }
 
-                // Use PowerShellManager to test connection
-                var result = await _powerShellManager.TestVCenterConnectionAsync(profile);
-
-                _logger.LogInformation($"Connection test result for {profile.Name}: {result.IsSuccessful}");
-
-                return result;
+                // Create credential without using statement
+                var credential = new PSCredential(profile.Username, securePassword);
+                return await _powerShellManager.TestVCenterConnectionAsync(profile, credential);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Connection test failed for profile: {profile.Name}");
-
-                return new ConnectionResult(
-                    isSuccessful: false,
-                    errorMessage: $"Connection test failed: {ex.Message}"
-                );
+                _logger.LogError(ex, "Connection test failed for {Server}", profile.ServerAddress);
+                return new ConnectionResult(false, errorMessage: ex.Message);
             }
         }
 
+        public void LoadProfiles()
+        {
+            try
+            {
+                ServerProfiles.Clear();
+                foreach (var profile in _profileManager.GetAllProfiles())
+                {
+                    ServerProfiles.Add(profile);
+                }
+                _logger.LogInformation("Loaded {Count} profiles", ServerProfiles.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load profiles");
+            }
+        }
         public void AddProfile(ConnectionProfile profile)
         {
             try
             {
                 _profileManager.SaveProfile(profile);
                 LoadProfiles();
-
-                _logger.LogInformation($"Added new connection profile: {profile.Name}");
+                _logger.LogInformation("Added profile: {ProfileName}", profile.Name);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error adding profile: {profile.Name}");
+                _logger.LogError(ex, "Failed to add profile");
                 throw;
             }
         }
-
         public void RemoveProfile(string profileName)
         {
             try
             {
                 _profileManager.DeleteProfile(profileName);
+                _credentialManager.DeletePassword(profileName); // Clean up credentials too
                 LoadProfiles();
-
-                _logger.LogInformation($"Removed connection profile: {profileName}");
+                _logger.LogInformation("Removed profile: {ProfileName}", profileName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error removing profile: {profileName}");
+                _logger.LogError(ex, "Failed to remove profile");
                 throw;
             }
         }
 
-        public ConnectionProfile? GetProfileByName(string profileName)
-        {
-            return ServerProfiles.FirstOrDefault(p => p.Name == profileName);
-        }
+
+        // ... [rest of your existing ConnectionManager methods] ...
     }
 }

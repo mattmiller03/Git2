@@ -1,55 +1,101 @@
-﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using System.Security;
+using System.Threading.Tasks;
 using UiDesktopApp2.Helpers;
 using UiDesktopApp2.Models;
 using UiDesktopApp2.Services;
-using CommunityToolkit.Mvvm.Input;
-{
-    
-}
 
 namespace UiDesktopApp2.ViewModels.Pages
 {
-    public class ConnectionViewModel : INotifyPropertyChanged
+    public partial class ConnectionViewModel : ObservableObject
     {
-        // Initialize commands in the constructor to ensure non-null values
-        public RelayCommand NewProfileCommand { get; }
-        public RelayCommand SaveProfileCommand { get; }
-        public RelayCommand DeleteProfileCommand { get; }
+        private readonly ConnectionManager _connectionManager;
+        private readonly ICredentialManager _credentialManager;
+        private readonly ILogger<ConnectionViewModel> _logger;
 
-        // Constructor
-        public ConnectionViewModel()
+        [ObservableProperty]
+        private ConnectionProfile _currentProfile = new();
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(HasStatusMessage))]
+        private string _statusMessage = string.Empty;
+
+        public bool HasStatusMessage => !string.IsNullOrEmpty(StatusMessage);
+
+        public ConnectionViewModel(
+            ConnectionManager connectionManager,
+            ICredentialManager credentialManager,
+            ILogger<ConnectionViewModel> logger)
         {
-            NewProfileCommand = new RelayCommand(OnNewProfile);
-            SaveProfileCommand = new RelayCommand(OnSaveProfile);
-            DeleteProfileCommand = new RelayCommand(OnDeleteProfile);
+            _connectionManager = connectionManager;
+            _credentialManager = credentialManager;
+            _logger = logger;
         }
 
-        // Implement the PropertyChanged event required by INotifyPropertyChanged
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        // Helper method to raise the PropertyChanged event
-        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        [RelayCommand]
+        private async Task OnSaveProfile()
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+            if (CurrentProfile == null) return;
+
+            try
+            {
+                // Convert password to SecureString
+                var securePassword = new SecureString();
+                foreach (char c in CurrentProfile.Password)
+                {
+                    securePassword.AppendChar(c);
+                }
+                securePassword.MakeReadOnly();
+
+                // Save credentials
+                _credentialManager.SavePassword(
+                    CurrentProfile.Name,
+                    CurrentProfile.Username,
+                    securePassword);
+
+                // Save profile (without password)
+                CurrentProfile.Password = string.Empty;
+                _connectionManager.AddProfile(CurrentProfile);
+
+                StatusMessage = "Profile saved successfully";
+                _logger.LogInformation("Saved profile: {ProfileName}", CurrentProfile.Name);
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error saving profile: {ex.Message}";
+                _logger.LogError(ex, "Failed to save profile");
+            }
         }
 
-        // Command methods
-        private void OnNewProfile()
+        [RelayCommand]
+        private async Task OnTestConnection()
         {
-            // Logic for creating a new profile
+            if (CurrentProfile == null)
+            {
+                StatusMessage = "No profile selected";
+                return;
+            }
+
+            try
+            {
+                var result = await _connectionManager.TestConnectionAsync(CurrentProfile);
+                StatusMessage = result.IsSuccessful
+                    ? $"Connection successful! Version: {result.Version}"
+                    : $"Connection failed: {result.ErrorMessage}";
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"Error testing connection: {ex.Message}";
+                _logger.LogError(ex, "Connection test failed");
+            }
         }
 
-        private void OnSaveProfile()
+        [RelayCommand]
+        private void ClearStatus()
         {
-            // Logic for saving a profile
-        }
-
-        private void OnDeleteProfile()
-        {
-            // Logic for deleting a profile
+            StatusMessage = string.Empty;
         }
     }
 }
