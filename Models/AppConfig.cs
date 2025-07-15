@@ -1,10 +1,11 @@
-﻿using UiDesktopApp2.Services;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using CommunityToolkit.Mvvm.ComponentModel;
+using UiDesktopApp2.Services;
+using Wpf.Ui.Appearance;
 
 
 
@@ -21,5 +22,16 @@ namespace UiDesktopApp2.Models
         public bool EnableDetailedLogging { get; set; } = true;
         public string DefaultSourceVCenter { get; set; } = string.Empty;
         public string DefaultDestinationVCenter { get; set; } = string.Empty;
+
+        public string ThemeName { get; set; } = "Unknown";
+        public ApplicationTheme GetTheme()
+        {
+            return ThemeName?.ToLower() switch
+            {
+                "dark" => ApplicationTheme.Dark,
+                "light" => ApplicationTheme.Light,
+                _ => ApplicationTheme.Unknown
+            };
+        }
     }
 }

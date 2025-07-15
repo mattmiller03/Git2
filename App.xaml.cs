@@ -61,7 +61,7 @@ namespace UiDesktopApp2
             }
         }
 
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
@@ -77,7 +77,7 @@ namespace UiDesktopApp2
 
             try
             {
-                _host.Start();
+                await _host.StartAsync();
 
                 // Register PowerShell scripts
                 var scriptManager = _host.Services.GetRequiredService<IPowerShellScriptManager>();
@@ -91,7 +91,7 @@ namespace UiDesktopApp2
                 mainWindow.Navigate(typeof(DashboardPage));
 
                 // Apply theme
-                ApplyTheme();
+                ApplyTheme(); // Apply theme based on appsettings.json
             }
             catch (Exception ex)
             {
@@ -99,7 +99,7 @@ namespace UiDesktopApp2
             }
         }
 
-        public void RegisterPowerShellScripts(IPowerShellScriptManager scriptManager)
+        public static void RegisterPowerShellScripts(IPowerShellScriptManager scriptManager)
         {
             try
             {
@@ -142,11 +142,31 @@ namespace UiDesktopApp2
             HandleException(e.Exception, "Background Task");
         }
 
+        private static void ApplyTheme()
+        {
+            try
+            {
+                var appConfig = _host.Services.GetRequiredService<AppConfig>();
+                var theme = appConfig.GetTheme();
+
+                // Apply theme globally with Mica backdrop and update setting
+                ApplicationThemeManager.Apply(
+                    theme,
+                    Wpf.Ui.Controls.WindowBackdropType.Mica,
+                    true);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Theme application error: {ex.Message}");
+            }
+        }
+
+
         private void HandleException(Exception ex, string source)
         {
             try
             {
-                _logger?.LogError(ex, $"[{source}] Unhandled exception occurred");
+                _logger?.LogError(ex, "[{Source}] Unhandled exception occurred", source);
 
                 MessageBox.Show(
                     $"An unexpected error occurred:\n\n{ex.Message}\n\nCheck logs for details.",
@@ -160,6 +180,7 @@ namespace UiDesktopApp2
                 System.Diagnostics.Debug.WriteLine($"Original exception: {ex}");
             }
         }
+
 
         private void HandleCriticalStartupError(Exception ex)
         {
@@ -189,7 +210,16 @@ namespace UiDesktopApp2
 
             // Windows and viewmodels
             services.AddSingleton<MainWindowViewModel>();
-            services.AddSingleton<INavigationWindow, MainWindow>();
+            // Register MainWindow with factory to inject dependencies
+            services.AddSingleton<INavigationWindow>(sp =>
+            {
+                var vm = sp.GetRequiredService<MainWindowViewModel>();
+                var pageProvider = sp.GetRequiredService<INavigationViewPageProvider>();
+                var navigationService = sp.GetRequiredService<INavigationService>();
+                var themeService = sp.GetRequiredService<IThemeService>();
+
+                return new MainWindow(vm, pageProvider, navigationService, themeService);
+            });
 
             // Pages and viewmodels
             services.AddSingleton<DashboardPage>();
@@ -250,26 +280,6 @@ Inner Exception:
             {
                 // Fallback error logging
                 System.Diagnostics.Debug.WriteLine($"Critical Startup Error: {ex}");
-            }
-        }
-
-        private void ApplyTheme()
-        {
-            try
-            {
-                var themeService = _host.Services.GetRequiredService<IThemeService>();
-
-                themeService.SetTheme(Wpf.Ui.Appearance.ApplicationTheme.Dark);
-                // Or use ApplicationThemeManager.Apply if preferred
-                // Wpf.Ui.Appearance.ApplicationThemeManager.Apply(
-                //     Wpf.Ui.Appearance.ApplicationTheme.Dark,
-                //     Wpf.Ui.Controls.WindowBackdropType.Mica,
-                //     true
-                // );
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"Theme application error: {ex.Message}");
             }
         }
     }

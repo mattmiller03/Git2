@@ -9,11 +9,14 @@ using UiDesktopApp2.Services;
 
 namespace UiDesktopApp2.ViewModels.Pages
 {
-    public partial class ConnectionViewModel : ObservableObject
+    public partial class ConnectionViewModel(
+        ConnectionManager connectionManager,
+        ICredentialManager credentialManager,
+        ILogger<ConnectionViewModel> logger) : ObservableObject
     {
-        private readonly ConnectionManager _connectionManager;
-        private readonly ICredentialManager _credentialManager;
-        private readonly ILogger<ConnectionViewModel> _logger;
+        private readonly ConnectionManager _connectionManager = connectionManager;
+        private readonly ICredentialManager _credentialManager = credentialManager;
+        private readonly ILogger<ConnectionViewModel> _logger = logger;
 
         [ObservableProperty]
         private ConnectionProfile _currentProfile = new();
@@ -23,16 +26,6 @@ namespace UiDesktopApp2.ViewModels.Pages
         private string _statusMessage = string.Empty;
 
         public bool HasStatusMessage => !string.IsNullOrEmpty(StatusMessage);
-
-        public ConnectionViewModel(
-            ConnectionManager connectionManager,
-            ICredentialManager credentialManager,
-            ILogger<ConnectionViewModel> logger)
-        {
-            _connectionManager = connectionManager;
-            _credentialManager = credentialManager;
-            _logger = logger;
-        }
 
         [RelayCommand]
         private async Task OnSaveProfile()
@@ -49,15 +42,18 @@ namespace UiDesktopApp2.ViewModels.Pages
                 }
                 securePassword.MakeReadOnly();
 
-                // Save credentials
-                _credentialManager.SavePassword(
-                    CurrentProfile.Name,
-                    CurrentProfile.Username,
-                    securePassword);
+                // Save credentials asynchronously
+                await Task.Run(() =>
+                {
+                    _credentialManager.SavePassword(
+                        CurrentProfile.Name,
+                        CurrentProfile.Username,
+                        securePassword);
 
-                // Save profile (without password)
-                CurrentProfile.Password = string.Empty;
-                _connectionManager.AddProfile(CurrentProfile);
+                    // Save profile (without password)
+                    CurrentProfile.Password = string.Empty;
+                    _connectionManager.AddProfile(CurrentProfile);
+                });
 
                 StatusMessage = "Profile saved successfully";
                 _logger.LogInformation("Saved profile: {ProfileName}", CurrentProfile.Name);
