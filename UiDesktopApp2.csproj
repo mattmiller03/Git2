@@ -11,11 +11,19 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Scripts\Backup\**" />
+    <Compile Remove="Scripts\Migrate\**" />
+    <EmbeddedResource Remove="Scripts\Backup\**" />
+    <EmbeddedResource Remove="Scripts\Migrate\**" />
+    <None Remove="Scripts\Backup\**" />
+    <None Remove="Scripts\Migrate\**" />
+    <Page Remove="Scripts\Backup\**" />
+    <Page Remove="Scripts\Migrate\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Scripts\test-vcenterconnection.ps1">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="wpfui-icon.ico" />
   </ItemGroup>
@@ -38,7 +46,7 @@
     <None Remove="appsettings.json" />
     <None Remove="Assets\wpfui-icon-256.png" />
     <None Remove="Assets\wpfui-icon-1024.png" />
-    <None Remove="Scripts\test-vcenterconnection.ps1" />
+    <None Remove="Scripts\Test-VCConnection.ps1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -50,6 +58,12 @@
     <None Update="Scripts\Set-Dyn_Env_TagPermissions.ps1">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Scripts\Hosts\" />
+    <Folder Include="Scripts\Vcenter\" />
+    <Folder Include="Scripts\VM\" />
   </ItemGroup>
 
 </Project>

@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Logging;
+using System.Collections.ObjectModel;
 using System.Security;
 using System.Threading.Tasks;
 using UiDesktopApp2.Helpers;
@@ -9,89 +9,164 @@ using UiDesktopApp2.Services;
 
 namespace UiDesktopApp2.ViewModels.Pages
 {
-    public partial class ConnectionViewModel(
-        ConnectionManager connectionManager,
-        ICredentialManager credentialManager,
-        ILogger<ConnectionViewModel> logger) : ObservableObject
+    public partial class ConnectionViewModel : ObservableObject
     {
-        private readonly ConnectionManager _connectionManager = connectionManager;
-        private readonly ICredentialManager _credentialManager = credentialManager;
-        private readonly ILogger<ConnectionViewModel> _logger = logger;
+        private readonly ConnectionManager _connectionManager;
+        private readonly IProfileManager _profileManager;
+        private readonly ICredentialManager _credentialManager;
 
-        [ObservableProperty]
-        private ConnectionProfile _currentProfile = new();
-
-        [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(HasStatusMessage))]
-        private string _statusMessage = string.Empty;
-
-        public bool HasStatusMessage => !string.IsNullOrEmpty(StatusMessage);
-
-        [RelayCommand]
-        private async Task OnSaveProfile()
+        public ConnectionViewModel(ConnectionManager connectionManager, IProfileManager profileManager, ICredentialManager credentialManager)
         {
-            if (CurrentProfile == null) return;
+            _connectionManager = connectionManager;
+            _profileManager = profileManager;
+            _credentialManager = credentialManager;
 
-            try
+            LoadSavedProfiles();
+        }
+
+        // Source vCenter properties
+        [ObservableProperty]
+        private string sourceServerAddress = string.Empty;
+
+        [ObservableProperty]
+        private string sourceUsername = string.Empty;
+
+        [ObservableProperty]
+        private string sourcePassword = string.Empty;
+
+        // Destination vCenter properties
+        [ObservableProperty]
+        private string destinationServerAddress = string.Empty;
+
+        [ObservableProperty]
+        private string destinationUsername = string.Empty;
+
+        [ObservableProperty]
+        private string destinationPassword = string.Empty;
+
+        // Saved profiles collection
+        [ObservableProperty]
+        private ObservableCollection<ConnectionProfile> savedProfiles = new();
+
+        // Selected profile from ComboBox
+        [ObservableProperty]
+        private ConnectionProfile selectedProfile;
+
+        // Status info properties
+        [ObservableProperty]
+        private string statusMessage = "Ready";
+
+        [ObservableProperty]
+        private bool isStatusOpen = false;
+
+        private void LoadSavedProfiles()
+        {
+            SavedProfiles.Clear();
+            var profiles = _profileManager.GetAllProfiles();
+            foreach (var profile in profiles)
             {
-                // Convert password to SecureString
-                var securePassword = new SecureString();
-                foreach (char c in CurrentProfile.Password)
-                {
-                    securePassword.AppendChar(c);
-                }
-                securePassword.MakeReadOnly();
-
-                // Save credentials asynchronously
-                await Task.Run(() =>
-                {
-                    _credentialManager.SavePassword(
-                        CurrentProfile.Name,
-                        CurrentProfile.Username,
-                        securePassword);
-
-                    // Save profile (without password)
-                    CurrentProfile.Password = string.Empty;
-                    _connectionManager.AddProfile(CurrentProfile);
-                });
-
-                StatusMessage = "Profile saved successfully";
-                _logger.LogInformation("Saved profile: {ProfileName}", CurrentProfile.Name);
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Error saving profile: {ex.Message}";
-                _logger.LogError(ex, "Failed to save profile");
+                SavedProfiles.Add(profile);
             }
         }
 
         [RelayCommand]
-        private async Task OnTestConnection()
+        private async Task TestSourceConnection()
         {
-            if (CurrentProfile == null)
+            StatusMessage = "Testing source connection...";
+            IsStatusOpen = true;
+
+            var profile = new ConnectionProfile
             {
-                StatusMessage = "No profile selected";
+                ServerAddress = SourceServerAddress,
+                Username = SourceUsername,
+                Password = SourcePassword
+            };
+
+            var result = await _connectionManager.TestConnectionAsync(profile);
+            StatusMessage = result.IsSuccessful ? "Source connection successful" : $"Source connection failed: {result.ErrorMessage}";
+        }
+
+        [RelayCommand]
+        private void SaveSourceProfile()
+        {
+            var profile = new ConnectionProfile
+            {
+                ServerAddress = SourceServerAddress,
+                Username = SourceUsername,
+                Password = SourcePassword,
+                Name = $"Source-{SourceServerAddress}"
+            };
+
+            _profileManager.SaveProfile(profile);
+            LoadSavedProfiles();
+            StatusMessage = "Source profile saved";
+            IsStatusOpen = true;
+        }
+
+        [RelayCommand]
+        private async Task TestDestinationConnection()
+        {
+            StatusMessage = "Testing destination connection...";
+            IsStatusOpen = true;
+
+            var profile = new ConnectionProfile
+            {
+                ServerAddress = DestinationServerAddress,
+                Username = DestinationUsername,
+                Password = DestinationPassword
+            };
+
+            var result = await _connectionManager.TestConnectionAsync(profile);
+            StatusMessage = result.IsSuccessful ? "Destination connection successful" : $"Destination connection failed: {result.ErrorMessage}";
+        }
+
+        [RelayCommand]
+        private void SaveDestinationProfile()
+        {
+            var profile = new ConnectionProfile
+            {
+                ServerAddress = DestinationServerAddress,
+                Username = DestinationUsername,
+                Password = DestinationPassword,
+                Name = $"Destination-{DestinationServerAddress}"
+            };
+
+            _profileManager.SaveProfile(profile);
+            LoadSavedProfiles();
+            StatusMessage = "Destination profile saved";
+            IsStatusOpen = true;
+        }
+
+        [RelayCommand]
+        private void LoadProfile()
+        {
+            if (SelectedProfile == null)
                 return;
-            }
 
-            try
-            {
-                var result = await _connectionManager.TestConnectionAsync(CurrentProfile);
-                StatusMessage = result.IsSuccessful
-                    ? $"Connection successful! Version: {result.Version}"
-                    : $"Connection failed: {result.ErrorMessage}";
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"Error testing connection: {ex.Message}";
-                _logger.LogError(ex, "Connection test failed");
-            }
+            // Load selected profile into both source and destination fields
+            SourceServerAddress = SelectedProfile.ServerAddress;
+            SourceUsername = SelectedProfile.Username;
+            SourcePassword = SelectedProfile.Password;
+
+            DestinationServerAddress = SelectedProfile.ServerAddress;
+            DestinationUsername = SelectedProfile.Username;
+            DestinationPassword = SelectedProfile.Password;
+
+            StatusMessage = $"Loaded profile: {SelectedProfile.Name}";
+            IsStatusOpen = true;
         }
 
         [RelayCommand]
-        private void ClearStatus()
+        private void DeleteProfile()
         {
-            StatusMessage = string.Empty;
+            if (SelectedProfile == null)
+                return;
+
+            _profileManager.DeleteProfile(SelectedProfile.Name);
+            LoadSavedProfiles();
+
+            StatusMessage = $"Deleted profile: {SelectedProfile.Name}";
+            IsStatusOpen = true;
         }
     }
 }

@@ -3,7 +3,6 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-      xmlns:viewModels="clr-namespace:UiDesktopApp2.ViewModels.Pages"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       mc:Ignorable="d"
       Title="Connection">
@@ -24,26 +23,29 @@
 
                         <Label Content="Server Address:" 
                                Style="{StaticResource FormLabel}" />
-                        <ui:TextBox x:Name="SourceServerTextBox" 
+                        <ui:TextBox Text="{Binding SourceServerAddress, Mode=TwoWay}"
                                    PlaceholderText="vcenter01.domain.com"
                                    Style="{StaticResource FormTextBox}" />
 
                         <Label Content="Username:" 
                                Style="{StaticResource FormLabel}" />
-                        <ui:TextBox x:Name="SourceUsernameTextBox" 
+                        <ui:TextBox Text="{Binding SourceUsername, Mode=TwoWay}"
                                    PlaceholderText="administrator@vsphere.local"
                                    Style="{StaticResource FormTextBox}" />
 
                         <Label Content="Password:" 
                                Style="{StaticResource FormLabel}" />
-                        <ui:PasswordBox x:Name="SourcePasswordBox" 
+                        <ui:PasswordBox Password="{Binding SourcePassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                        Style="{StaticResource FormPasswordBox}" />
 
-                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Right">
                             <ui:Button Content="Test Connection" 
-                                      Style="{StaticResource PrimaryButton}" />
+                                      Style="{StaticResource PrimaryButton}"
+                                      Command="{Binding TestSourceConnectionCommand}" 
+                                      Margin="0,0,10,0" />
                             <ui:Button Content="Save Profile" 
-                                      Style="{StaticResource SecondaryButton}" />
+                                      Style="{StaticResource SecondaryButton}"
+                                      Command="{Binding SaveSourceProfileCommand}" />
                         </StackPanel>
                     </StackPanel>
                 </ui:Card>
@@ -56,26 +58,29 @@
 
                         <Label Content="Server Address:" 
                                Style="{StaticResource FormLabel}" />
-                        <ui:TextBox x:Name="DestServerTextBox" 
+                        <ui:TextBox Text="{Binding DestinationServerAddress, Mode=TwoWay}"
                                    PlaceholderText="vcenter02.domain.com"
                                    Style="{StaticResource FormTextBox}" />
 
                         <Label Content="Username:" 
                                Style="{StaticResource FormLabel}" />
-                        <ui:TextBox x:Name="DestUsernameTextBox" 
+                        <ui:TextBox Text="{Binding DestinationUsername, Mode=TwoWay}"
                                    PlaceholderText="administrator@vsphere.local"
                                    Style="{StaticResource FormTextBox}" />
 
                         <Label Content="Password:" 
                                Style="{StaticResource FormLabel}" />
-                        <ui:PasswordBox x:Name="DestPasswordBox" 
+                        <ui:PasswordBox Password="{Binding DestinationPassword, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                        Style="{StaticResource FormPasswordBox}" />
 
-                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Right">
                             <ui:Button Content="Test Connection" 
-                                      Style="{StaticResource PrimaryButton}" />
+                                      Style="{StaticResource PrimaryButton}"
+                                      Command="{Binding TestDestinationConnectionCommand}" 
+                                      Margin="0,0,10,0" />
                             <ui:Button Content="Save Profile" 
-                                      Style="{StaticResource SecondaryButton}" />
+                                      Style="{StaticResource SecondaryButton}"
+                                      Command="{Binding SaveDestinationProfileCommand}" />
                         </StackPanel>
                     </StackPanel>
                 </ui:Card>
@@ -91,25 +96,27 @@
 
                         <Label Content="Profile:" 
                                Style="{StaticResource FormLabel}" />
-                        <ComboBox x:Name="ProfileComboBox" 
-                                 Style="{StaticResource FormComboBox}" />
+                        <ComboBox ItemsSource="{Binding SavedProfiles}"
+                                  SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
+                                  Style="{StaticResource FormComboBox}" />
 
-                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Right">
                             <ui:Button Content="Load Profile" 
-                                      Style="{StaticResource PrimaryButton}" />
+                                      Style="{StaticResource PrimaryButton}"
+                                      Command="{Binding LoadProfileCommand}" 
+                                      Margin="0,0,10,0" />
                             <ui:Button Content="Delete Profile" 
-                                      Style="{StaticResource DangerButton}" />
+                                      Style="{StaticResource DangerButton}"
+                                      Command="{Binding DeleteProfileCommand}" />
                         </StackPanel>
                     </StackPanel>
                 </ui:Card>
 
                 <!-- Status Messages -->
-                <ui:InfoBar x:Name="ConnectionStatusInfo" 
-                           Title="Connection Status" 
-                           Message="Ready to connect" 
+                <ui:InfoBar Title="Connection Status" 
+                           Message="{Binding StatusMessage}" 
                            Style="{StaticResource InfoMessage}" 
-                           IsOpen="True" />
-
+                           IsOpen="{Binding IsStatusOpen}" />
             </StackPanel>
         </ScrollViewer>
     </Grid>

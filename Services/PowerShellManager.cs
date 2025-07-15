@@ -32,7 +32,7 @@ namespace UiDesktopApp2.Services
                     { "Environment", "TEST" }
                 };
 
-                var result = await ExecuteScriptAsync("Test-VCenterConnection", parameters);
+                var result = await ExecuteScriptAsync("Test-VCConnection", parameters);
                 return ParseConnectionResult(result);
             }
             catch (Exception ex)
@@ -61,25 +61,25 @@ namespace UiDesktopApp2.Services
 
         private async Task<string> ExecuteScriptAsync(string scriptName, Dictionary<string, object> parameters)
         {
-            try
-            {
-                var scriptPath = _scriptManager.GetScriptPath(scriptName);
-                using var ps = PowerShell.Create();
+            var scriptPath = _scriptManager.GetScriptPath(scriptName); // returns full path including subfolder
+            using var ps = PowerShell.Create();
 
-                ps.AddCommand(scriptPath);
-                foreach (var param in parameters)
-                {
-                    ps.AddParameter(param.Key, param.Value);
-                }
-
-                var results = await Task.Run(() => ps.Invoke());
-                return string.Join(Environment.NewLine, results.Select(r => r?.ToString() ?? string.Empty));
-            }
-            catch (Exception ex)
+            ps.AddCommand(scriptPath);
+            foreach (var param in parameters)
             {
-                _logger.LogError(ex, "PowerShell script execution failed");
-                throw;
+                ps.AddParameter(param.Key, param.Value);
             }
+
+            var results = await Task.Run(() => ps.Invoke());
+
+            if (ps.HadErrors)
+            {
+                var errors = string.Join(Environment.NewLine, ps.Streams.Error.Select(e => e.ToString()));
+                _logger.LogError("PowerShell script errors: {Errors}", errors);
+                throw new Exception($"PowerShell script errors: {errors}");
+            }
+
+            return string.Join(Environment.NewLine, results.Select(r => r?.ToString() ?? string.Empty));
         }
     }
 }

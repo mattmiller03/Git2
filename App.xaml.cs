@@ -81,7 +81,7 @@ namespace UiDesktopApp2
 
                 // Register PowerShell scripts
                 var scriptManager = _host.Services.GetRequiredService<IPowerShellScriptManager>();
-                RegisterPowerShellScripts(scriptManager);
+                RegisterAllPowerShellScripts(scriptManager);
 
                 // Get and show the main window
                 var mainWindow = _host.Services.GetRequiredService<INavigationWindow>();
@@ -99,31 +99,44 @@ namespace UiDesktopApp2
             }
         }
 
-        public static void RegisterPowerShellScripts(IPowerShellScriptManager scriptManager)
+        public static void RegisterAllPowerShellScripts(IPowerShellScriptManager scriptManager)
         {
             try
             {
-                // Verify script exists before registering
-                string scriptPath = Path.Combine("Scripts", "Set-Dyn_Env_TagPermissions.ps1");
-                string fullPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptPath));
+                string scriptsRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Scripts");
+                if (!Directory.Exists(scriptsRoot))
+                    throw new DirectoryNotFoundException($"Scripts folder not found: {scriptsRoot}");
 
-                if (!File.Exists(fullPath))
+                // Get all .ps1 files recursively
+                var scriptFiles = Directory.GetFiles(scriptsRoot, "*.ps1", SearchOption.AllDirectories);
+
+                foreach (var fullPath in scriptFiles)
                 {
-                    throw new FileNotFoundException($"Critical error: PowerShell script not found at {fullPath}");
-                }
+                    // Compute relative path from base directory
+                    string relativePath = Path.GetRelativePath(AppDomain.CurrentDomain.BaseDirectory, fullPath);
 
-                scriptManager.RegisterScript("Set-Dyn_Env_TagPermissions", scriptPath);
+                    // Use relative path with forward slashes for consistency (optional)
+                    relativePath = relativePath.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+
+                    // Use filename without extension as script key
+                    string scriptName = Path.GetFileNameWithoutExtension(fullPath);
+
+                    scriptManager.RegisterScript(scriptName, relativePath);
+
+                    // Optional: log registration
+                    Console.WriteLine($"Registered PowerShell script: {scriptName} at {relativePath}");
+                }
             }
             catch (Exception ex)
             {
-                // This will fail fast if scripts are missing
                 MessageBox.Show($"FATAL ERROR: Could not register PowerShell scripts.\n{ex.Message}",
-                              "Startup Error",
-                              MessageBoxButton.OK,
-                              MessageBoxImage.Error);
+                                "Startup Error",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
                 Environment.Exit(1);
             }
         }
+
 
         private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
         {

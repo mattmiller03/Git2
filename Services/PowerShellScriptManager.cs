@@ -1,12 +1,7 @@
 ﻿using Microsoft.Extensions.Logging;
 using System;
-using System;
-using System.Collections.Generic;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UiDesktopApp2.Helpers;
 
 namespace UiDesktopApp2.Services
@@ -21,11 +16,11 @@ namespace UiDesktopApp2.Services
             _logger = logger;
         }
 
-        public void RegisterScript(string scriptName, string scriptPath)
+        public void RegisterScript(string scriptName, string relativeScriptPath)
         {
             try
             {
-                string fullPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptPath));
+                string fullPath = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, relativeScriptPath));
 
                 if (!File.Exists(fullPath))
                 {
@@ -56,6 +51,44 @@ namespace UiDesktopApp2.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Failed to get script path for {scriptName}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Registers all PowerShell scripts (*.ps1) found recursively in the given scripts root folder.
+        /// Uses the filename without extension as script key.
+        /// </summary>
+        /// <param name="scriptsRootRelativePath">Relative path to the scripts root folder, e.g. "Scripts"</param>
+        public void RegisterAllScripts(string scriptsRootRelativePath = "Scripts")
+        {
+            try
+            {
+                string scriptsRoot = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, scriptsRootRelativePath));
+                if (!Directory.Exists(scriptsRoot))
+                {
+                    _logger.LogError($"Scripts root folder not found: {scriptsRoot}");
+                    throw new DirectoryNotFoundException($"Scripts root folder not found: {scriptsRoot}");
+                }
+
+                foreach (var fullPath in Directory.GetFiles(scriptsRoot, "*.ps1", SearchOption.AllDirectories))
+                {
+                    string relativePath = Path.GetRelativePath(AppDomain.CurrentDomain.BaseDirectory, fullPath);
+                    string scriptName = Path.GetFileNameWithoutExtension(fullPath);
+
+                    // To avoid duplicate keys, optionally you could include subfolder names or enforce unique names
+                    if (_scripts.ContainsKey(scriptName))
+                    {
+                        _logger.LogWarning($"Duplicate script name detected: {scriptName}. Skipping registration of {relativePath}");
+                        continue;
+                    }
+
+                    RegisterScript(scriptName, relativePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to register all PowerShell scripts");
                 throw;
             }
         }
