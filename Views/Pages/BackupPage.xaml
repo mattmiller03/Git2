@@ -4,8 +4,11 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:viewModels="clr-namespace:UiDesktopApp2.ViewModels.Pages"
       mc:Ignorable="d"
+      d:DataContext="{d:DesignInstance viewModels:BackupViewModel}"
       Title="Backup and Restore">
+
     <Page.Resources>
         <Style x:Key="StandardDataGrid" TargetType="DataGrid">
             <Setter Property="AutoGenerateColumns" Value="False"/>
@@ -86,8 +89,7 @@
 
                                 <ui:Button Content="Schedule Backup" 
                                           Style="{StaticResource SecondaryButton}"
-                                          HorizontalAlignment="Stretch"
-                                          Command="{Binding ScheduleConfigBackupCommand}" />
+                                          HorizontalAlignment="Stretch" />
                             </StackPanel>
 
                             <TextBlock Text="{Binding LastConfigBackup, StringFormat='Last backup: {0}'}" 
@@ -130,11 +132,9 @@
 
                                 <ui:Button Content="Import Templates" 
                                           Style="{StaticResource SecondaryButton}"
-                                          HorizontalAlignment="Stretch"
-                                          Command="{Binding ImportTemplatesCommand}" />
+                                          HorizontalAlignment="Stretch" />
                             </StackPanel>
 
-                            <!-- Fix for TemplateCount Binding -->
                             <TextBlock Text="{Binding TemplateCount, StringFormat='{}{0} templates available'}" 
                                       Style="{StaticResource CaptionTextBlockStyle}"
                                       Margin="0,12,0,0" />
@@ -175,8 +175,7 @@
 
                                 <ui:Button Content="Archive Logs" 
                                           Style="{StaticResource SecondaryButton}"
-                                          HorizontalAlignment="Stretch"
-                                          Command="{Binding ArchiveLogsCommand}" />
+                                          HorizontalAlignment="Stretch" />
                             </StackPanel>
 
                             <TextBlock Text="{Binding DataSize, StringFormat='Data size: {0}'}" 
@@ -214,8 +213,7 @@
                                               Command="{Binding CleanupBackupsCommand}"
                                               Margin="0,0,8,0" />
                                     <ui:Button Content="Settings" 
-                                              Style="{StaticResource SecondaryButton}"
-                                              Command="{Binding BackupSettingsCommand}" />
+                                              Style="{StaticResource SecondaryButton}" />
                                 </StackPanel>
                             </Grid>
 
@@ -286,8 +284,6 @@
 
                                 <ui:Button Content="Download" 
                                           Style="{StaticResource SecondaryButton}"
-                                          Command="{Binding DownloadBackupCommand}"
-                                          CommandParameter="{Binding SelectedBackup}"
                                           IsEnabled="{Binding CanDownload}"
                                           Margin="0,0,8,0" />
 
@@ -394,17 +390,14 @@
                                 <StackPanel Margin="0,8,0,0">
                                     <CheckBox Content="Enable daily configuration backup"
                                              IsChecked="{Binding EnableDailyBackup}"
-                                             Style="{StaticResource FormCheckBox}"
                                              Margin="0,0,0,4" />
 
                                     <CheckBox Content="Backup before migrations"
                                              IsChecked="{Binding BackupBeforeMigration}"
-                                             Style="{StaticResource FormCheckBox}"
                                              Margin="0,0,0,4" />
 
                                     <CheckBox Content="Auto-cleanup old backups"
                                              IsChecked="{Binding AutoCleanupBackups}"
-                                             Style="{StaticResource FormCheckBox}"
                                              Margin="0,0,0,8" />
 
                                     <Grid>
@@ -441,19 +434,16 @@
                                     <ui:Button Content="Test Restore" 
                                               Style="{StaticResource SecondaryButton}"
                                               HorizontalAlignment="Stretch"
-                                              Command="{Binding TestRestoreCommand}"
                                               Margin="0,0,0,4" />
 
                                     <ui:Button Content="Export Settings" 
                                               Style="{StaticResource SecondaryButton}"
                                               HorizontalAlignment="Stretch"
-                                              Command="{Binding ExportSettingsCommand}"
                                               Margin="0,0,0,4" />
 
                                     <ui:Button Content="Import Settings" 
                                               Style="{StaticResource SecondaryButton}"
-                                              HorizontalAlignment="Stretch"
-                                              Command="{Binding ImportSettingsCommand}" />
+                                              HorizontalAlignment="Stretch" />
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>
@@ -461,12 +451,17 @@
                 </Grid>
 
                 <!-- Status Bar -->
-                <ui:InfoBar x:Name="BackupStatusInfo" 
-                           Title="{Binding StatusTitle}" 
+                <ui:InfoBar Title="{Binding StatusTitle}" 
                            Message="{Binding StatusMessage}" 
                            Severity="{Binding StatusSeverity}"
                            IsOpen="{Binding ShowStatus}" 
                            Margin="0,16,0,0" />
+
+                <!-- Loading Indicator -->
+                <ui:ProgressRing IsIndeterminate="True" 
+                                Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Width="50" Height="50"
+                                Margin="0,16,0,0" />
 
             </StackPanel>
         </ScrollViewer>

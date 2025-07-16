@@ -6,6 +6,7 @@ using Wpf.Ui;
 using Wpf.Ui.Abstractions;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
+using UiDesktopApp2.Models;
 
 namespace UiDesktopApp2.Views.Windows
 {

@@ -25,6 +25,12 @@
     <Content Include="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Scripts\Vcenter\Test-VcConnection.ps1">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Scripts\VM\VMBackup.ps1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="wpfui-icon.ico" />
   </ItemGroup>
 
@@ -47,6 +53,8 @@
     <None Remove="Assets\wpfui-icon-256.png" />
     <None Remove="Assets\wpfui-icon-1024.png" />
     <None Remove="Scripts\Test-VCConnection.ps1" />
+    <None Remove="Scripts\Vcenter\Test-VcConnection.ps1" />
+    <None Remove="Scripts\VM\VMBackup.ps1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -62,8 +70,6 @@
 
   <ItemGroup>
     <Folder Include="Scripts\Hosts\" />
-    <Folder Include="Scripts\Vcenter\" />
-    <Folder Include="Scripts\VM\" />
   </ItemGroup>
 
 </Project>

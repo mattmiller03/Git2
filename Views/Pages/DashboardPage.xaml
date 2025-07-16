@@ -5,6 +5,7 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       xmlns:viewModels="clr-namespace:UiDesktopApp2.ViewModels.Pages"
+      xmlns:converters="clr-namespace:UiDesktopApp2.Converters"
       mc:Ignorable="d"
       d:DataContext="{d:DesignInstance viewModels:DashboardViewModel}"
       Title="Dashboard">
@@ -23,8 +24,7 @@
                     <StackPanel Grid.Column="0">
                         <TextBlock Text="Migration Dashboard" 
                                   Style="{StaticResource TitleTextBlockStyle}" />
-                        <TextBlock x:Name="WelcomeTextBlock" 
-                                  Text="Welcome back! Here's your migration overview."
+                        <TextBlock Text="Welcome back! Here's your migration overview."
                                   Style="{StaticResource BodyTextBlockStyle}" />
                     </StackPanel>
 
@@ -34,7 +34,8 @@
                         <ui:Button Content="New Migration" 
                                   Style="{StaticResource PrimaryButton}" />
                         <ui:Button Content="Refresh" 
-                                  Style="{StaticResource SecondaryButton}" />
+                                  Style="{StaticResource SecondaryButton}"
+                                  Command="{Binding RefreshCommand}" />
                     </StackPanel>
                 </Grid>
 
@@ -61,26 +62,25 @@
                                           Grid.Column="0" />
 
                                 <Ellipse Width="12" Height="12" 
-                                        Fill="LimeGreen"
+                                        Fill="{Binding SourceVCenterStatusColor}"
                                         Grid.Column="1"
                                         VerticalAlignment="Center" />
                             </Grid>
 
-                            <TextBlock x:Name="SourceVcenterTextBlock" 
-                                      Text="vcenter01.domain.com"
+                            <TextBlock Text="{Binding SourceVCenterAddress}" 
                                       Style="{StaticResource HeaderTextBlockStyle}" />
 
-                            <TextBlock Text="Connected" 
+                            <TextBlock Text="{Binding SourceVCenterStatus}" 
                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                      Foreground="LimeGreen" />
+                                      Foreground="{Binding SourceVCenterStatusColor}" />
 
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                 <TextBlock Text="VMs: " Style="{StaticResource CaptionTextBlockStyle}" />
-                                <TextBlock Text="247" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SourceVMCount}" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
                                 <TextBlock Text=" | Hosts: " Style="{StaticResource CaptionTextBlockStyle}" />
-                                <TextBlock Text="12" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SourceHostCount}" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
                                 <TextBlock Text=" | Clusters: " Style="{StaticResource CaptionTextBlockStyle}" />
-                                <TextBlock Text="3" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding SourceClusterCount}" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
                             </StackPanel>
                         </StackPanel>
                     </ui:Card>
@@ -101,26 +101,25 @@
                                           Grid.Column="0" />
 
                                 <Ellipse Width="12" Height="12" 
-                                        Fill="LimeGreen"
+                                        Fill="{Binding DestinationVCenterStatusColor}"
                                         Grid.Column="1"
                                         VerticalAlignment="Center" />
                             </Grid>
 
-                            <TextBlock x:Name="DestVcenterTextBlock" 
-                                      Text="vcenter02.domain.com"
+                            <TextBlock Text="{Binding DestinationVCenterAddress}" 
                                       Style="{StaticResource HeaderTextBlockStyle}" />
 
-                            <TextBlock Text="Connected" 
+                            <TextBlock Text="{Binding DestinationVCenterStatus}" 
                                       Style="{StaticResource CaptionTextBlockStyle}"
-                                      Foreground="LimeGreen" />
+                                      Foreground="{Binding DestinationVCenterStatusColor}" />
 
                             <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
                                 <TextBlock Text="VMs: " Style="{StaticResource CaptionTextBlockStyle}" />
-                                <TextBlock Text="89" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding DestinationVMCount}" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
                                 <TextBlock Text=" | Hosts: " Style="{StaticResource CaptionTextBlockStyle}" />
-                                <TextBlock Text="8" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding DestinationHostCount}" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
                                 <TextBlock Text=" | Clusters: " Style="{StaticResource CaptionTextBlockStyle}" />
-                                <TextBlock Text="2" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding DestinationClusterCount}" Style="{StaticResource CaptionTextBlockStyle}" FontWeight="SemiBold" />
                             </StackPanel>
                         </StackPanel>
                     </ui:Card>
@@ -146,7 +145,7 @@
                                    BorderThickness="0,0,1,0"
                                    Padding="0,0,16,0">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="24" 
+                                    <TextBlock Text="{Binding TotalMigrations}" 
                                               FontSize="32" 
                                               FontWeight="Bold" 
                                               HorizontalAlignment="Center"
@@ -163,7 +162,7 @@
                                    BorderThickness="0,0,1,0"
                                    Padding="16,0">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="21" 
+                                    <TextBlock Text="{Binding SuccessfulMigrations}" 
                                               FontSize="32" 
                                               FontWeight="Bold" 
                                               HorizontalAlignment="Center"
@@ -180,7 +179,7 @@
                                    BorderThickness="0,0,1,0"
                                    Padding="16,0">
                                 <StackPanel HorizontalAlignment="Center">
-                                    <TextBlock Text="2" 
+                                    <TextBlock Text="{Binding FailedMigrations}" 
                                               FontSize="32" 
                                               FontWeight="Bold" 
                                               HorizontalAlignment="Center"
@@ -196,13 +195,17 @@
                                    Padding="16,0,0,0">
                                 <StackPanel HorizontalAlignment="Center">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="1" 
+                                        <TextBlock Text="{Binding InProgressMigrations}" 
                                                   FontSize="32" 
                                                   FontWeight="Bold"
                                                   Foreground="Orange" />
                                         <ui:ProgressRing Width="20" Height="20" 
                                                         IsIndeterminate="True"
-                                                        Margin="8,8,0,0" />
+                                                        Margin="8,8,0,0">
+                                            <ui:ProgressRing.Visibility>
+                                                <Binding Path="InProgressMigrations" Converter="{StaticResource IntToVisibilityConverter}" />
+                                            </ui:ProgressRing.Visibility>
+                                        </ui:ProgressRing>
                                     </StackPanel>
                                     <TextBlock Text="In Progress" 
                                               Style="{StaticResource CaptionTextBlockStyle}"
@@ -228,48 +231,64 @@
                             <TextBlock Text="Current Activity" 
                                       Style="{StaticResource SubtitleTextBlockStyle}" />
 
-                            <!-- Active Migration -->
-                            <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
-                                   BorderThickness="1"
-                                   CornerRadius="4"
-                                   Padding="12"
-                                   Margin="0,8,0,8">
-                                <StackPanel>
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="*" />
-                                            <ColumnDefinition Width="Auto" />
-                                        </Grid.ColumnDefinitions>
+                            <!-- Active Migrations List -->
+                            <ItemsControl ItemsSource="{Binding ActiveMigrations}" Margin="0,8,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                               BorderThickness="1"
+                                               CornerRadius="4"
+                                               Padding="12"
+                                               Margin="0,0,0,8">
+                                            <StackPanel>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
 
-                                        <TextBlock Text="WebServer03" 
-                                                  Style="{StaticResource HeaderTextBlockStyle}"
-                                                  Grid.Column="0" />
+                                                    <TextBlock Text="{Binding VmName}" 
+                                                              Style="{StaticResource HeaderTextBlockStyle}"
+                                                              Grid.Column="0" />
 
-                                        <TextBlock Text="vMotion" 
-                                                  Style="{StaticResource CaptionTextBlockStyle}"
-                                                  Grid.Column="1"
-                                                  VerticalAlignment="Center" />
-                                    </Grid>
+                                                    <TextBlock Text="{Binding MigrationType}" 
+                                                              Style="{StaticResource CaptionTextBlockStyle}"
+                                                              Grid.Column="1"
+                                                              VerticalAlignment="Center" />
+                                                </Grid>
 
-                                    <ProgressBar Value="65" 
-                                               Maximum="100"
-                                               Height="8"
-                                               Margin="0,8,0,4" />
+                                                <ProgressBar Value="{Binding Progress}" 
+                                                           Maximum="100"
+                                                           Height="8"
+                                                           Margin="0,8,0,4" />
 
-                                    <Grid>
-                                        <TextBlock Text="Migrating storage (65%)" 
-                                                  Style="{StaticResource CaptionTextBlockStyle}"
-                                                  HorizontalAlignment="Left" />
-                                        <TextBlock Text="2m 15s remaining" 
-                                                  Style="{StaticResource CaptionTextBlockStyle}"
-                                                  HorizontalAlignment="Right" />
-                                    </Grid>
-                                </StackPanel>
-                            </Border>
+                                                <Grid>
+                                                    <TextBlock Text="{Binding Status}" 
+                                                              Style="{StaticResource CaptionTextBlockStyle}"
+                                                              HorizontalAlignment="Left" />
+                                                    <TextBlock Text="{Binding TimeRemaining}" 
+                                                              Style="{StaticResource CaptionTextBlockStyle}"
+                                                              HorizontalAlignment="Right" />
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
 
-                            <!-- Queue Status -->
-                            <TextBlock Text="Queue: 3 VMs pending" 
-                                      Style="{StaticResource BodyTextBlockStyle}" />
+                            <!-- No Active Migrations Message -->
+                            <TextBlock Text="No active migrations" 
+                                      Style="{StaticResource BodyTextBlockStyle}"
+                                      HorizontalAlignment="Center"
+                                      Margin="0,20,0,0">
+                                <TextBlock.Visibility>
+                                    <Binding Path="ActiveMigrations.Count" Converter="{StaticResource IntToVisibilityConverter}">
+                                        <Binding.ConverterParameter>
+                                            <x:Static Member="Visibility.Collapsed" />
+                                        </Binding.ConverterParameter>
+                                    </Binding>
+                                </TextBlock.Visibility>
+                            </TextBlock>
 
                             <ui:Button Content="View All Active" 
                                       Style="{StaticResource SecondaryButton}"
@@ -287,97 +306,54 @@
                                       Style="{StaticResource SubtitleTextBlockStyle}" />
 
                             <!-- Recent Items -->
-                            <StackPanel Margin="0,8,0,0">
-                                <!-- Migration Item 1 -->
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
+                            <ItemsControl ItemsSource="{Binding RecentMigrations}" Margin="0,8,0,0">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
 
-                                    <Ellipse Width="8" Height="8" 
-                                            Fill="LimeGreen"
-                                            Grid.Column="0"
-                                            VerticalAlignment="Center"
-                                            Margin="0,0,8,0" />
+                                            <Ellipse Width="8" Height="8" 
+                                                    Fill="LimeGreen"
+                                                    Grid.Column="0"
+                                                    VerticalAlignment="Center"
+                                                    Margin="0,0,8,0" />
 
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="DatabaseServer01" 
-                                                  Style="{StaticResource BodyTextBlockStyle}"
-                                                  Margin="0" />
-                                        <TextBlock Text="Completed 15 minutes ago" 
-                                                  Style="{StaticResource CaptionTextBlockStyle}"
-                                                  Margin="0" />
-                                    </StackPanel>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding VmName}" 
+                                                          Style="{StaticResource BodyTextBlockStyle}"
+                                                          Margin="0" />
+                                                <TextBlock Text="{Binding MigrationDate, StringFormat='Completed {0:HH:mm} ago'}" 
+                                                          Style="{StaticResource CaptionTextBlockStyle}"
+                                                          Margin="0" />
+                                            </StackPanel>
 
-                                    <TextBlock Text="Success" 
-                                              Style="{StaticResource CaptionTextBlockStyle}"
-                                              Foreground="LimeGreen"
-                                              Grid.Column="2"
-                                              VerticalAlignment="Center" />
-                                </Grid>
+                                            <TextBlock Text="Success" 
+                                                      Style="{StaticResource CaptionTextBlockStyle}"
+                                                      Foreground="LimeGreen"
+                                                      Grid.Column="2"
+                                                      VerticalAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
 
-                                <!-- Migration Item 2 -->
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <Ellipse Width="8" Height="8" 
-                                            Fill="LimeGreen"
-                                            Grid.Column="0"
-                                            VerticalAlignment="Center"
-                                            Margin="0,0,8,0" />
-
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="WebServer02" 
-                                                  Style="{StaticResource BodyTextBlockStyle}"
-                                                  Margin="0" />
-                                        <TextBlock Text="Completed 1 hour ago" 
-                                                  Style="{StaticResource CaptionTextBlockStyle}"
-                                                  Margin="0" />
-                                    </StackPanel>
-
-                                    <TextBlock Text="Success" 
-                                              Style="{StaticResource CaptionTextBlockStyle}"
-                                              Foreground="LimeGreen"
-                                              Grid.Column="2"
-                                              VerticalAlignment="Center" />
-                                </Grid>
-
-                                <!-- Migration Item 3 -->
-                                <Grid Margin="0,0,0,8">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-
-                                    <Ellipse Width="8" Height="8" 
-                                            Fill="OrangeRed"
-                                            Grid.Column="0"
-                                            VerticalAlignment="Center"
-                                            Margin="0,0,8,0" />
-
-                                    <StackPanel Grid.Column="1">
-                                        <TextBlock Text="FileServer01" 
-                                                  Style="{StaticResource BodyTextBlockStyle}"
-                                                  Margin="0" />
-                                        <TextBlock Text="Failed 2 hours ago" 
-                                                  Style="{StaticResource CaptionTextBlockStyle}"
-                                                  Margin="0" />
-                                    </StackPanel>
-
-                                    <TextBlock Text="Failed" 
-                                              Style="{StaticResource CaptionTextBlockStyle}"
-                                              Foreground="OrangeRed"
-                                              Grid.Column="2"
-                                              VerticalAlignment="Center" />
-                                </Grid>
-                            </StackPanel>
+                            <!-- No Recent Migrations Message -->
+                            <TextBlock Text="No recent migrations" 
+                                      Style="{StaticResource BodyTextBlockStyle}"
+                                      HorizontalAlignment="Center"
+                                      Margin="0,20,0,0">
+                                <TextBlock.Visibility>
+                                    <Binding Path="RecentMigrations.Count" Converter="{StaticResource IntToVisibilityConverter}">
+                                        <Binding.ConverterParameter>
+                                            <x:Static Member="Visibility.Collapsed" />
+                                        </Binding.ConverterParameter>
+                                    </Binding>
+                                </TextBlock.Visibility>
+                            </TextBlock>
 
                             <ui:Button Content="View Migration History" 
                                       Style="{StaticResource SecondaryButton}"
@@ -387,7 +363,7 @@
                     </ui:Card>
                 </Grid>
 
-                <!-- System Health & Alerts -->
+                <!-- System Health & Quick Actions -->
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*" />
@@ -418,11 +394,11 @@
                                                 Fill="LimeGreen"
                                                 VerticalAlignment="Center"
                                                 Margin="0,0,6,0" />
-                                        <TextBlock Text="Connected" 
+                                        <TextBlock Text="{Binding PowerCLIStatus}" 
                                                   Style="{StaticResource BodyTextBlockStyle}"
                                                   Margin="0" />
                                     </StackPanel>
-                                    <TextBlock Text="Version 13.2.1" 
+                                    <TextBlock Text="{Binding PowerCLIVersion, StringFormat='Version {0}'}" 
                                               Style="{StaticResource CaptionTextBlockStyle}" />
                                 </StackPanel>
 
@@ -430,11 +406,11 @@
                                 <StackPanel Grid.Column="1" Margin="0,0,16,0">
                                     <TextBlock Text="Memory Usage" 
                                               Style="{StaticResource HeaderTextBlockStyle}" />
-                                    <ProgressBar Value="34" 
+                                    <ProgressBar Value="{Binding MemoryUsage}" 
                                                Maximum="100"
                                                Height="8"
                                                Margin="0,4,0,4" />
-                                    <TextBlock Text="346 MB / 1024 MB" 
+                                    <TextBlock Text="{Binding MemoryUsageText}" 
                                               Style="{StaticResource CaptionTextBlockStyle}" />
                                 </StackPanel>
 
@@ -447,11 +423,11 @@
                                                 Fill="Orange"
                                                 VerticalAlignment="Center"
                                                 Margin="0,0,6,0" />
-                                        <TextBlock Text="15.7 MB" 
+                                        <TextBlock Text="{Binding LogFileSize}" 
                                                   Style="{StaticResource BodyTextBlockStyle}"
                                                   Margin="0" />
                                     </StackPanel>
-                                    <TextBlock Text="Archive recommended" 
+                                    <TextBlock Text="{Binding LogFileStatus}" 
                                               Style="{StaticResource CaptionTextBlockStyle}" />
                                 </StackPanel>
                             </Grid>
@@ -470,11 +446,13 @@
                                 <ui:Button Content="Test Connections" 
                                           Style="{StaticResource SecondaryButton}"
                                           HorizontalAlignment="Stretch"
+                                          Command="{Binding TestConnectionsCommand}"
                                           Margin="0,0,0,8" />
 
                                 <ui:Button Content="Backup Config" 
                                           Style="{StaticResource SecondaryButton}"
                                           HorizontalAlignment="Stretch"
+                                          Command="{Binding BackupConfigCommand}"
                                           Margin="0,0,0,8" />
 
                                 <ui:Button Content="View Logs" 
@@ -492,11 +470,16 @@
                 </Grid>
 
                 <!-- Status Bar -->
-                <ui:InfoBar x:Name="DashboardStatusInfo" 
-                           Title="System Status" 
-                           Message="All systems operational. Last updated: 2 minutes ago" 
-                           Style="{StaticResource SuccessMessage}" 
-                           IsOpen="True" />
+                <ui:InfoBar Title="System Status" 
+                           Message="{Binding StatusMessage}" 
+                           IsOpen="True"
+                           Margin="0,16,0,0" />
+
+                <!-- Loading Indicator -->
+                <ui:ProgressRing IsIndeterminate="True" 
+                                Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                Width="50" Height="50"
+                                Margin="0,16,0,0" />
 
             </StackPanel>
         </ScrollViewer>

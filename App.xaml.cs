@@ -77,6 +77,8 @@ namespace UiDesktopApp2
 
             try
             {
+                // Initialize ServiceLocator
+                ServiceLocator.Initialize(_host.Services);
                 await _host.StartAsync();
 
                 // Register PowerShell scripts
@@ -261,6 +263,7 @@ namespace UiDesktopApp2
             services.AddSingleton<PowerShellManager>();
             services.AddSingleton<ICredentialManager, WindowsCredentialManager>();
             services.AddSingleton<ConnectionManager>();
+
 
             // Hosted services
             services.AddHostedService<ApplicationHostService>();

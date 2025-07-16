@@ -13,16 +13,23 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
+using UiDesktopApp2.ViewModels.Pages;
+using Wpf.Ui.Abstractions.Controls;
+
 namespace UiDesktopApp2.Views.Pages
 {
-    /// <summary>
-    /// Interaction logic for BackupPage.xaml
-    /// </summary>
-    public partial class BackupPage : Page
+    public partial class BackupPage : Page, INavigableView<BackupViewModel>
     {
-        public BackupPage()
+        public BackupViewModel ViewModel { get; }
+
+        public BackupPage(BackupViewModel viewModel)
         {
+            ViewModel = viewModel;
+            DataContext = ViewModel;
             InitializeComponent();
+
+            // Load data when page loads
+            Loaded += async (s, e) => await ViewModel.LoadDataAsync();
         }
     }
 }

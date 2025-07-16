@@ -1,4 +1,7 @@
-﻿using System.Windows.Controls;
+﻿using Microsoft.Extensions.Logging;
+using System.Data;
+using System.Windows.Controls;
+using UiDesktopApp2.Services;
 using UiDesktopApp2.ViewModels.Pages;
 
 namespace UiDesktopApp2.Views.Pages

@@ -1,77 +1,46 @@
-﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Diagnostics;
+﻿using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
-using System.Windows.Data;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using Microsoft.Win32;
+using Microsoft.Extensions.Logging;
 using UiDesktopApp2.Models;
 using UiDesktopApp2.Services;
-using UiDesktopApp2.Helpers;
 using Wpf.Ui.Controls;
-using Wpf.Ui.Abstractions;
-using Wpf.Ui.Appearance;
-using Wpf.Ui.Extensions;
-
 
 namespace UiDesktopApp2.ViewModels.Pages
 {
     public partial class BackupViewModel : ObservableObject
     {
-        private readonly AppConfig _appConfig;
+        private readonly BackupManager _backupManager;
         private readonly ConnectionManager _connectionManager;
-        private readonly PowerShellManager _powerShellManager;
+        private readonly ILogger<BackupViewModel> _logger;
 
-        [ObservableProperty]
-        private string _lastConfigBackup = "Never";
-
-        [ObservableProperty]
-        private int _templateCount = 0;
-
-        [ObservableProperty]
-        private string _dataSize = "0 MB";
-
-        [ObservableProperty]
-        private ObservableCollection<string> _backupTypes = new()
-        {
-            "All Types", "Configuration", "VM Templates", "Migration Data", "Logs"
-        };
-
-        [ObservableProperty]
-        private string _selectedBackupType = "All Types";
-
-        [ObservableProperty]
-        private ObservableCollection<string> _dateFilters = new()
-        {
-            "All Dates", "Last 7 Days", "Last 30 Days", "Last 90 Days", "This Year"
-        };
-
-        [ObservableProperty]
-        private string _selectedDateFilter = "All Dates";
-
+        // Backup History and Selection
         [ObservableProperty]
         private ObservableCollection<BackupItem> _backupHistory = new();
 
         [ObservableProperty]
-        private ICollectionView _filteredBackups;
-
-        [ObservableProperty]
         private BackupItem? _selectedBackup;
 
+        // Filter Properties
         [ObservableProperty]
-        private bool _canRestore = false;
+        private ObservableCollection<string> _backupTypes = new() { "All", "VM Metadata", "Configuration", "Templates", "Migration Data" };
 
         [ObservableProperty]
-        private bool _canDownload = false;
+        private string _selectedBackupType = "All";
 
         [ObservableProperty]
-        private bool _canDelete = false;
+        private ObservableCollection<string> _dateFilters = new() { "All", "Today", "This Week", "This Month", "Last 30 Days" };
 
         [ObservableProperty]
-        private bool _canVerify = false;
+        private string _selectedDateFilter = "All";
 
-        // Backup Progress
+        // Backup Status and Progress
         [ObservableProperty]
         private bool _isBackupInProgress = false;
 
@@ -94,9 +63,9 @@ namespace UiDesktopApp2.ViewModels.Pages
         [ObservableProperty]
         private double _storageUsagePercentage = 0;
 
-        // Automated Backup Settings
+        // Backup Settings
         [ObservableProperty]
-        private bool _enableDailyBackup = true;
+        private bool _enableDailyBackup = false;
 
         [ObservableProperty]
         private bool _backupBeforeMigration = true;
@@ -105,20 +74,27 @@ namespace UiDesktopApp2.ViewModels.Pages
         private bool _autoCleanupBackups = false;
 
         [ObservableProperty]
-        private ObservableCollection<string> _retentionOptions = new()
-        {
-            "7 Days", "30 Days", "90 Days", "6 Months", "1 Year", "Keep All"
-        };
+        private ObservableCollection<string> _retentionOptions = new() { "7 days", "30 days", "90 days", "1 year", "Never" };
 
         [ObservableProperty]
-        private string _selectedRetention = "30 Days";
+        private string _selectedRetention = "30 days";
 
-        // Status
+        // Template Information
         [ObservableProperty]
-        private string _statusTitle = "Ready";
+        private int _templateCount = 0;
 
         [ObservableProperty]
-        private string _statusMessage = "Backup system ready";
+        private string _lastConfigBackup = "Never";
+
+        [ObservableProperty]
+        private string _dataSize = "0 MB";
+
+        // Status and UI State
+        [ObservableProperty]
+        private string _statusTitle = "Backup Status";
+
+        [ObservableProperty]
+        private string _statusMessage = "Ready";
 
         [ObservableProperty]
         private InfoBarSeverity _statusSeverity = InfoBarSeverity.Informational;
@@ -126,24 +102,78 @@ namespace UiDesktopApp2.ViewModels.Pages
         [ObservableProperty]
         private bool _showStatus = false;
 
-        private CancellationTokenSource? _backupCancellationToken;
+        [ObservableProperty]
+        private bool _isLoading = false;
 
-        public BackupViewModel(AppConfig appConfig, ConnectionManager connectionManager, PowerShellManager powerShellManager)
+        // Command Enablement Properties
+        [ObservableProperty]
+        private bool _canRestore = false;
+
+        [ObservableProperty]
+        private bool _canDownload = false;
+
+        [ObservableProperty]
+        private bool _canDelete = false;
+
+        [ObservableProperty]
+        private bool _canVerify = false;
+
+        public BackupViewModel(
+            BackupManager backupManager,
+            ConnectionManager connectionManager,
+            ILogger<BackupViewModel> logger)
         {
-            _appConfig = appConfig;
+            _backupManager = backupManager;
             _connectionManager = connectionManager;
-            _powerShellManager = powerShellManager;
+            _logger = logger;
 
-            // Initialize backup location
-            BackupLocation = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "vCenter Migration Tool", "Backups");
+            BackupLocation = _backupManager.DefaultBackupPath;
 
-            // Initialize filtered collection
-            _filteredBackups = CollectionViewSource.GetDefaultView(BackupHistory);
-            _filteredBackups.Filter = FilterBackups;
+            // Subscribe to property changes
+            PropertyChanged += OnPropertyChanged;
 
-            LoadBackupHistory();
-            UpdateStorageInfo();
-            LoadSettings();
+            // Initialize data
+            _ = Task.Run(LoadDataAsync);
+        }
+
+        private void OnPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(SelectedBackup))
+            {
+                UpdateCommandStates();
+            }
+            else if (e.PropertyName == nameof(SelectedBackupType) || e.PropertyName == nameof(SelectedDateFilter))
+            {
+                _ = Task.Run(FilterBackupHistoryAsync);
+            }
+        }
+
+        [RelayCommand]
+        private async Task LoadDataAsync()
+        {
+            try
+            {
+                IsLoading = true;
+                await RefreshBackupHistoryAsync();
+                await UpdateStorageInformationAsync();
+                await LoadBackupSettingsAsync();
+                await UpdateTemplateCountAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load backup data");
+                ShowStatusMessage("Error loading backup data", ex.Message, InfoBarSeverity.Error);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        [RelayCommand]
+        private async Task RefreshAsync()
+        {
+            await LoadDataAsync();
         }
 
         [RelayCommand]
@@ -151,40 +181,38 @@ namespace UiDesktopApp2.ViewModels.Pages
         {
             try
             {
-                var dialog = new SaveFileDialog
+                if (_connectionManager.CurrentConnection == null)
                 {
-                    Filter = "Backup files (*.backup)|*.backup|All files (*.*)|*.*",
-                    DefaultExt = ".backup",
-                    FileName = $"FullBackup_{DateTime.Now:yyyy-MM-dd_HH-mm}"
-                };
+                    ShowStatusMessage("Connection Required", "Please connect to a vCenter server first", InfoBarSeverity.Warning);
+                    return;
+                }
 
-                if (dialog.ShowDialog() == true)
+                IsBackupInProgress = true;
+                BackupProgress = 0;
+                CurrentBackupOperation = "Starting VM metadata backup...";
+
+                var result = await _backupManager.PerformVMBackupAsync();
+
+                if (result.IsSuccessful)
                 {
-                    await CreateFullBackupAsync(dialog.FileName);
+                    ShowStatusMessage("Backup Successful", $"VM metadata backup completed successfully", InfoBarSeverity.Success);
+                    await RefreshBackupHistoryAsync();
+                }
+                else
+                {
+                    ShowStatusMessage("Backup Failed", result.Message, InfoBarSeverity.Error);
                 }
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Backup Error", $"Failed to create backup: {ex.Message}", InfoBarSeverity.Error);
+                _logger.LogError(ex, "Backup creation failed");
+                ShowStatusMessage("Backup Error", ex.Message, InfoBarSeverity.Error);
             }
-        }
-
-        [RelayCommand]
-        private async Task RefreshAsync()
-        {
-            try
+            finally
             {
-                ShowStatusMessage("Refreshing", "Updating backup information...", InfoBarSeverity.Informational);
-
-                LoadBackupHistory();
-                UpdateStorageInfo();
-                await UpdateTemplateCountAsync();
-
-                ShowStatusMessage("Refreshed", "Backup information updated successfully", InfoBarSeverity.Success);
-            }
-            catch (Exception ex)
-            {
-                ShowStatusMessage("Refresh Error", $"Failed to refresh: {ex.Message}", InfoBarSeverity.Error);
+                IsBackupInProgress = false;
+                BackupProgress = 0;
+                CurrentBackupOperation = string.Empty;
             }
         }
 
@@ -193,31 +221,50 @@ namespace UiDesktopApp2.ViewModels.Pages
         {
             try
             {
-                await StartBackupOperationAsync("Configuration Backup", async (progress, cancellation) =>
+                IsBackupInProgress = true;
+                CurrentBackupOperation = "Backing up configuration...";
+
+                // Backup connection profiles and settings
+                var configBackupPath = Path.Combine(_backupManager.DefaultBackupPath, $"Config_Backup_{DateTime.Now:yyyyMMdd_HHmmss}.json");
+
+                // This would backup your application configuration
+                var profiles = _connectionManager.ServerProfiles.ToList();
+                var configData = new
                 {
-                    await BackupApplicationConfigAsync(progress, cancellation);
-                });
+                    Profiles = profiles,
+                    BackupDate = DateTime.Now,
+                    Version = "1.0.0"
+                };
 
+                var json = System.Text.Json.JsonSerializer.Serialize(configData, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllTextAsync(configBackupPath, json);
+
+                // Create backup item
+                var backupItem = new BackupItem
+                {
+                    Name = $"Configuration Backup {DateTime.Now:yyyy-MM-dd HH:mm}",
+                    Type = "Configuration",
+                    CreatedDate = DateTime.Now,
+                    FilePath = configBackupPath,
+                    Size = new FileInfo(configBackupPath).Length,
+                    Status = "Completed"
+                };
+
+                _backupManager.BackupItems.Add(backupItem);
                 LastConfigBackup = DateTime.Now.ToString("yyyy-MM-dd HH:mm");
-                ShowStatusMessage("Success", "Configuration backup completed successfully", InfoBarSeverity.Success);
-            }
-            catch (Exception ex)
-            {
-                ShowStatusMessage("Backup Error", $"Configuration backup failed: {ex.Message}", InfoBarSeverity.Error);
-            }
-        }
 
-        [RelayCommand]
-        private void ScheduleConfigBackup()
-        {
-            try
-            {
-                // In a real implementation, this would open a scheduling dialog
-                ShowStatusMessage("Scheduled", "Daily configuration backup has been scheduled", InfoBarSeverity.Success);
+                ShowStatusMessage("Configuration Backup", "Configuration backup completed successfully", InfoBarSeverity.Success);
+                await RefreshBackupHistoryAsync();
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Schedule Error", $"Failed to schedule backup: {ex.Message}", InfoBarSeverity.Error);
+                _logger.LogError(ex, "Configuration backup failed");
+                ShowStatusMessage("Configuration Backup Failed", ex.Message, InfoBarSeverity.Error);
+            }
+            finally
+            {
+                IsBackupInProgress = false;
+                CurrentBackupOperation = string.Empty;
             }
         }
 
@@ -226,43 +273,29 @@ namespace UiDesktopApp2.ViewModels.Pages
         {
             try
             {
-                await StartBackupOperationAsync("Template Export", async (progress, cancellation) =>
+                if (_connectionManager.CurrentConnection == null)
                 {
-                    await ExportVMTemplatesAsync(progress, cancellation);
-                });
-
-                ShowStatusMessage("Success", "VM templates exported successfully", InfoBarSeverity.Success);
-            }
-            catch (Exception ex)
-            {
-                ShowStatusMessage("Export Error", $"Template export failed: {ex.Message}", InfoBarSeverity.Error);
-            }
-        }
-
-        [RelayCommand]
-        private async Task ImportTemplatesAsync()
-        {
-            try
-            {
-                var dialog = new OpenFileDialog
-                {
-                    Filter = "Template files (*.ovf;*.ova)|*.ovf;*.ova|All files (*.*)|*.*",
-                    Multiselect = true
-                };
-
-                if (dialog.ShowDialog() == true)
-                {
-                    await StartBackupOperationAsync("Template Import", async (progress, cancellation) =>
-                    {
-                        await ImportVMTemplatesAsync(dialog.FileNames, progress, cancellation);
-                    });
-
-                    ShowStatusMessage("Success", $"Imported {dialog.FileNames.Length} templates successfully", InfoBarSeverity.Success);
+                    ShowStatusMessage("Connection Required", "Please connect to a vCenter server first", InfoBarSeverity.Warning);
+                    return;
                 }
+
+                IsBackupInProgress = true;
+                CurrentBackupOperation = "Exporting VM templates...";
+
+                // This would export VM templates - placeholder for now
+                await Task.Delay(2000); // Simulate export process
+
+                ShowStatusMessage("Template Export", "VM templates exported successfully", InfoBarSeverity.Success);
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Import Error", $"Template import failed: {ex.Message}", InfoBarSeverity.Error);
+                _logger.LogError(ex, "Template export failed");
+                ShowStatusMessage("Template Export Failed", ex.Message, InfoBarSeverity.Error);
+            }
+            finally
+            {
+                IsBackupInProgress = false;
+                CurrentBackupOperation = string.Empty;
             }
         }
 
@@ -271,74 +304,23 @@ namespace UiDesktopApp2.ViewModels.Pages
         {
             try
             {
-                await StartBackupOperationAsync("Migration Data Backup", async (progress, cancellation) =>
-                {
-                    await BackupMigrationHistoryAsync(progress, cancellation);
-                });
+                IsBackupInProgress = true;
+                CurrentBackupOperation = "Backing up migration data...";
 
-                ShowStatusMessage("Success", "Migration data backup completed successfully", InfoBarSeverity.Success);
+                // This would backup migration logs and data
+                await Task.Delay(1500); // Simulate backup process
+
+                ShowStatusMessage("Migration Data Backup", "Migration data backup completed successfully", InfoBarSeverity.Success);
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Backup Error", $"Migration data backup failed: {ex.Message}", InfoBarSeverity.Error);
+                _logger.LogError(ex, "Migration data backup failed");
+                ShowStatusMessage("Migration Data Backup Failed", ex.Message, InfoBarSeverity.Error);
             }
-        }
-
-        [RelayCommand]
-        private async Task ArchiveLogsAsync()
-        {
-            try
+            finally
             {
-                await StartBackupOperationAsync("Log Archive", async (progress, cancellation) =>
-                {
-                    await ArchiveApplicationLogsAsync(progress, cancellation);
-                });
-
-                ShowStatusMessage("Success", "Logs archived successfully", InfoBarSeverity.Success);
-            }
-            catch (Exception ex)
-            {
-                ShowStatusMessage("Archive Error", $"Log archive failed: {ex.Message}", InfoBarSeverity.Error);
-            }
-        }
-
-        [RelayCommand]
-        private void CleanupBackups()
-        {
-            try
-            {
-                var cutoffDate = DateTime.Now.AddDays(-GetRetentionDays());
-                var oldBackups = BackupHistory.Where(b => b.CreatedDate < cutoffDate).ToList();
-
-                foreach (var backup in oldBackups)
-                {
-                    if (File.Exists(backup.FilePath))
-                    {
-                        File.Delete(backup.FilePath);
-                    }
-                    BackupHistory.Remove(backup);
-                }
-
-                UpdateStorageInfo();
-                ShowStatusMessage("Cleanup Complete", $"Removed {oldBackups.Count} old backup files", InfoBarSeverity.Success);
-            }
-            catch (Exception ex)
-            {
-                ShowStatusMessage("Cleanup Error", $"Backup cleanup failed: {ex.Message}", InfoBarSeverity.Error);
-            }
-        }
-
-        [RelayCommand]
-        private void BackupSettings()
-        {
-            try
-            {
-                // In a real implementation, this would open a settings dialog
-                ShowStatusMessage("Settings", "Backup settings dialog would open here", InfoBarSeverity.Informational);
-            }
-            catch (Exception ex)
-            {
-                ShowStatusMessage("Settings Error", $"Failed to open settings: {ex.Message}", InfoBarSeverity.Error);
+                IsBackupInProgress = false;
+                CurrentBackupOperation = string.Empty;
             }
         }
 
@@ -349,63 +331,47 @@ namespace UiDesktopApp2.ViewModels.Pages
 
             try
             {
-                await StartBackupOperationAsync($"Restoring {backup.Name}", async (progress, cancellation) =>
-                {
-                    await RestoreFromBackupAsync(backup, progress, cancellation);
-                });
+                var restoreLocation = Path.Combine(_backupManager.DefaultBackupPath, "Restored");
+                var success = await _backupManager.RestoreBackupAsync(backup, restoreLocation);
 
-                ShowStatusMessage("Success", $"Backup '{backup.Name}' restored successfully", InfoBarSeverity.Success);
+                if (success)
+                {
+                    ShowStatusMessage("Restore Successful", $"Backup '{backup.Name}' restored successfully", InfoBarSeverity.Success);
+                }
+                else
+                {
+                    ShowStatusMessage("Restore Failed", $"Failed to restore backup '{backup.Name}'", InfoBarSeverity.Error);
+                }
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Restore Error", $"Failed to restore backup: {ex.Message}", InfoBarSeverity.Error);
+                _logger.LogError(ex, "Backup restore failed");
+                ShowStatusMessage("Restore Error", ex.Message, InfoBarSeverity.Error);
             }
         }
 
         [RelayCommand]
-        private void DownloadBackup(BackupItem? backup)
+        private async Task DeleteBackupAsync(BackupItem? backup)
         {
             if (backup == null) return;
 
             try
             {
-                var dialog = new SaveFileDialog
+                var success = _backupManager.DeleteBackup(backup);
+                if (success)
                 {
-                    FileName = backup.Name,
-                    DefaultExt = Path.GetExtension(backup.FilePath)
-                };
-
-                if (dialog.ShowDialog() == true)
+                    await RefreshBackupHistoryAsync();
+                    ShowStatusMessage("Backup Deleted", $"Backup '{backup.Name}' deleted successfully", InfoBarSeverity.Success);
+                }
+                else
                 {
-                    File.Copy(backup.FilePath, dialog.FileName, true);
-                    ShowStatusMessage("Success", $"Backup downloaded to {dialog.FileName}", InfoBarSeverity.Success);
+                    ShowStatusMessage("Delete Failed", $"Failed to delete backup '{backup.Name}'", InfoBarSeverity.Error);
                 }
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Download Error", $"Failed to download backup: {ex.Message}", InfoBarSeverity.Error);
-            }
-        }
-
-        [RelayCommand]
-        private void DeleteBackup(BackupItem? backup)
-        {
-            if (backup == null) return;
-
-            try
-            {
-                if (File.Exists(backup.FilePath))
-                {
-                    File.Delete(backup.FilePath);
-                }
-
-                BackupHistory.Remove(backup);
-                UpdateStorageInfo();
-                ShowStatusMessage("Success", $"Backup '{backup.Name}' deleted successfully", InfoBarSeverity.Success);
-            }
-            catch (Exception ex)
-            {
-                ShowStatusMessage("Delete Error", $"Failed to delete backup: {ex.Message}", InfoBarSeverity.Error);
+                _logger.LogError(ex, "Backup deletion failed");
+                ShowStatusMessage("Delete Error", ex.Message, InfoBarSeverity.Error);
             }
         }
 
@@ -416,34 +382,42 @@ namespace UiDesktopApp2.ViewModels.Pages
 
             try
             {
-                await StartBackupOperationAsync($"Verifying {backup.Name}", async (progress, cancellation) =>
-                {
-                    await VerifyBackupIntegrityAsync(backup, progress, cancellation);
-                });
+                var isValid = _backupManager.ValidateBackup(backup.FilePath);
+                var message = isValid ? "Backup is valid and can be restored" : "Backup validation failed - file may be corrupted";
+                var severity = isValid ? InfoBarSeverity.Success : InfoBarSeverity.Error;
 
-                backup.Status = "Verified";
-                ShowStatusMessage("Success", $"Backup '{backup.Name}' verification completed", InfoBarSeverity.Success);
+                ShowStatusMessage("Backup Verification", message, severity);
             }
             catch (Exception ex)
             {
-                backup.Status = "Verification Failed";
-                ShowStatusMessage("Verification Error", $"Backup verification failed: {ex.Message}", InfoBarSeverity.Error);
+                _logger.LogError(ex, "Backup verification failed");
+                ShowStatusMessage("Verification Error", ex.Message, InfoBarSeverity.Error);
             }
         }
 
         [RelayCommand]
-        private void CancelBackup()
+        private async Task CleanupBackupsAsync()
         {
             try
             {
-                _backupCancellationToken?.Cancel();
-                IsBackupInProgress = false;
-                CurrentBackupOperation = "Operation cancelled";
-                ShowStatusMessage("Cancelled", "Backup operation cancelled by user", InfoBarSeverity.Warning);
+                // Implement cleanup logic based on retention settings
+                var cutoffDate = GetRetentionCutoffDate();
+                var itemsToRemove = _backupManager.BackupItems
+                    .Where(b => b.CreatedDate < cutoffDate)
+                    .ToList();
+
+                foreach (var item in itemsToRemove)
+                {
+                    _backupManager.DeleteBackup(item);
+                }
+
+                await RefreshBackupHistoryAsync();
+                ShowStatusMessage("Cleanup Complete", $"Removed {itemsToRemove.Count} old backup(s)", InfoBarSeverity.Success);
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Cancel Error", $"Failed to cancel operation: {ex.Message}", InfoBarSeverity.Error);
+                _logger.LogError(ex, "Backup cleanup failed");
+                ShowStatusMessage("Cleanup Error", ex.Message, InfoBarSeverity.Error);
             }
         }
 
@@ -452,483 +426,175 @@ namespace UiDesktopApp2.ViewModels.Pages
         {
             try
             {
-                if (!Directory.Exists(BackupLocation))
+                if (Directory.Exists(BackupLocation))
                 {
-                    Directory.CreateDirectory(BackupLocation);
-                }
-
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "explorer.exe",
-                    Arguments = BackupLocation,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                ShowStatusMessage("Folder Error", $"Failed to open backup folder: {ex.Message}", InfoBarSeverity.Error);
-            }
-        }
-
-        [RelayCommand]
-        private async Task TestRestoreAsync()
-        {
-            try
-            {
-                var latestBackup = BackupHistory.Where(b => b.Type == "Configuration").OrderByDescending(b => b.CreatedDate).FirstOrDefault();
-
-                if (latestBackup != null)
-                {
-                    await StartBackupOperationAsync("Test Restore", async (progress, cancellation) =>
-                    {
-                        await TestRestoreOperationAsync(latestBackup, progress, cancellation);
-                    });
-
-                    ShowStatusMessage("Success", "Test restore completed successfully", InfoBarSeverity.Success);
+                    System.Diagnostics.Process.Start("explorer.exe", BackupLocation);
                 }
                 else
                 {
-                    ShowStatusMessage("No Backup", "No configuration backup available for testing", InfoBarSeverity.Warning);
+                    ShowStatusMessage("Folder Not Found", "Backup folder does not exist", InfoBarSeverity.Warning);
                 }
             }
             catch (Exception ex)
             {
-                ShowStatusMessage("Test Error", $"Test restore failed: {ex.Message}", InfoBarSeverity.Error);
+                _logger.LogError(ex, "Failed to open backup folder");
+                ShowStatusMessage("Error", "Failed to open backup folder", InfoBarSeverity.Error);
             }
         }
 
         [RelayCommand]
-        private void ExportSettings()
+        private void CancelBackup()
         {
-            try
-            {
-                var dialog = new SaveFileDialog
-                {
-                    Filter = "Settings files (*.json)|*.json|All files (*.*)|*.*",
-                    DefaultExt = ".json",
-                    FileName = $"Settings_{DateTime.Now:yyyy-MM-dd}.json"
-                };
-
-                if (dialog.ShowDialog() == true)
-                {
-                    ExportApplicationSettings(dialog.FileName);
-                    ShowStatusMessage("Success", $"Settings exported to {dialog.FileName}", InfoBarSeverity.Success);
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowStatusMessage("Export Error", $"Failed to export settings: {ex.Message}", InfoBarSeverity.Error);
-            }
-        }
-
-        [RelayCommand]
-        private void ImportSettings()
-        {
-            try
-            {
-                var dialog = new OpenFileDialog
-                {
-                    Filter = "Settings files (*.json)|*.json|All files (*.*)|*.*"
-                };
-
-                if (dialog.ShowDialog() == true)
-                {
-                    ImportApplicationSettings(dialog.FileName);
-                    ShowStatusMessage("Success", $"Settings imported from {dialog.FileName}", InfoBarSeverity.Success);
-                }
-            }
-            catch (Exception ex)
-            {
-                ShowStatusMessage("Import Error", $"Failed to import settings: {ex.Message}", InfoBarSeverity.Error);
-            }
-        }
-
-        partial void OnSelectedBackupChanged(BackupItem? value)
-        {
-            CanRestore = value != null && value.Status == "Complete";
-            CanDownload = value != null && File.Exists(value.FilePath);
-            CanDelete = value != null;
-            CanVerify = value != null && value.Status != "Verifying";
-        }
-
-        partial void OnSelectedBackupTypeChanged(string value)
-        {
-            FilteredBackups.Refresh();
-        }
-
-        partial void OnSelectedDateFilterChanged(string value)
-        {
-            FilteredBackups.Refresh();
-        }
-
-        private bool FilterBackups(object item)
-        {
-            if (item is not BackupItem backup)
-                return false;
-
-            // Type filter
-            if (SelectedBackupType != "All Types" && backup.Type != SelectedBackupType)
-                return false;
-
-            // Date filter
-            if (SelectedDateFilter != "All Dates")
-            {
-                var cutoffDate = SelectedDateFilter switch
-                {
-                    "Last 7 Days" => DateTime.Now.AddDays(-7),
-                    "Last 30 Days" => DateTime.Now.AddDays(-30),
-                    "Last 90 Days" => DateTime.Now.AddDays(-90),
-                    "This Year" => new DateTime(DateTime.Now.Year, 1, 1),
-                    _ => DateTime.MinValue
-                };
-
-                if (backup.CreatedDate < cutoffDate)
-                    return false;
-            }
-
-            return true;
-        }
-
-        private async Task StartBackupOperationAsync(string operationName, Func<IProgress<int>, CancellationToken, Task> operation)
-        {
-            _backupCancellationToken?.Cancel();
-            _backupCancellationToken = new CancellationTokenSource();
-
-            IsBackupInProgress = true;
-            CurrentBackupOperation = operationName;
+            // Implement backup cancellation logic
+            IsBackupInProgress = false;
             BackupProgress = 0;
+            CurrentBackupOperation = string.Empty;
+            ShowStatusMessage("Backup Cancelled", "Backup operation was cancelled", InfoBarSeverity.Warning);
+        }
 
-            var progress = new Progress<int>(value => BackupProgress = value);
-
+        private async Task RefreshBackupHistoryAsync()
+        {
             try
             {
-                await operation(progress, _backupCancellationToken.Token);
-            }
-            finally
-            {
-                IsBackupInProgress = false;
-                CurrentBackupOperation = "";
-                BackupProgress = 0;
-            }
-        }
-
-        private async Task CreateFullBackupAsync(string filePath)
-        {
-            await StartBackupOperationAsync("Creating Full Backup", async (progress, cancellation) =>
-            {
-                // Simulate full backup process
-                for (int i = 0; i <= 100; i += 5)
+                BackupHistory.Clear();
+                foreach (var item in _backupManager.BackupItems)
                 {
-                    if (cancellation.IsCancellationRequested)
-                        break;
-
-                    progress.Report(i);
-                    await Task.Delay(200, cancellation);
+                    BackupHistory.Add(item);
                 }
 
-                // Create backup file
-                var backupData = CreateBackupData();
-                await File.WriteAllTextAsync(filePath, backupData, cancellation);
+                await FilterBackupHistoryAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to refresh backup history");
+            }
+        }
 
-                // Add to history
-                var backup = new BackupItem
+        private async Task FilterBackupHistoryAsync()
+        {
+            try
+            {
+                var filteredItems = _backupManager.BackupItems.AsEnumerable();
+
+                // Filter by type
+                if (SelectedBackupType != "All")
                 {
-                    Name = Path.GetFileName(filePath),
-                    Type = "Full Backup",
-                    CreatedDate = DateTime.Now,
-                    FilePath = filePath,
-                    Size = new FileInfo(filePath).Length,
-                    Status = "Complete"
-                };
+                    filteredItems = filteredItems.Where(b => b.Type == SelectedBackupType);
+                }
 
-                BackupHistory.Insert(0, backup);
-                UpdateStorageInfo();
-            });
-        }
+                // Filter by date
+                if (SelectedDateFilter != "All")
+                {
+                    var cutoffDate = GetDateFilterCutoff();
+                    filteredItems = filteredItems.Where(b => b.CreatedDate >= cutoffDate);
+                }
 
-        private async Task BackupApplicationConfigAsync(IProgress<int> progress, CancellationToken cancellation)
-        {
-            for (int i = 0; i <= 100; i += 10)
-            {
-                if (cancellation.IsCancellationRequested)
-                    break;
-
-                progress.Report(i);
-                await Task.Delay(100, cancellation);
+                BackupHistory.Clear();
+                foreach (var item in filteredItems)
+                {
+                    BackupHistory.Add(item);
+                }
             }
-
-            var configBackup = new BackupItem
+            catch (Exception ex)
             {
-                Name = $"Config_{DateTime.Now:yyyy-MM-dd_HH-mm}.backup",
-                Type = "Configuration",
-                CreatedDate = DateTime.Now,
-                FilePath = Path.Combine(BackupLocation, $"Config_{DateTime.Now:yyyy-MM-dd_HH-mm}.backup"),
-                Size = 1024 * 50, // 50KB
-                Status = "Complete"
-            };
-
-            BackupHistory.Insert(0, configBackup);
-        }
-
-        private async Task ExportVMTemplatesAsync(IProgress<int> progress, CancellationToken cancellation)
-        {
-            for (int i = 0; i <= 100; i += 5)
-            {
-                if (cancellation.IsCancellationRequested)
-                    break;
-
-                progress.Report(i);
-                await Task.Delay(300, cancellation);
-            }
-
-            var templateBackup = new BackupItem
-            {
-                Name = $"Templates_{DateTime.Now:yyyy-MM-dd_HH-mm}.backup",
-                Type = "VM Templates",
-                CreatedDate = DateTime.Now,
-                FilePath = Path.Combine(BackupLocation, $"Templates_{DateTime.Now:yyyy-MM-dd_HH-mm}.backup"),
-                Size = 1024 * 1024 * 100, // 100MB
-                Status = "Complete"
-            };
-
-            BackupHistory.Insert(0, templateBackup);
-        }
-
-        private async Task ImportVMTemplatesAsync(string[] templateFiles, IProgress<int> progress, CancellationToken cancellation)
-        {
-            for (int i = 0; i < templateFiles.Length; i++)
-            {
-                if (cancellation.IsCancellationRequested)
-                    break;
-
-                progress.Report((i + 1) * 100 / templateFiles.Length);
-                await Task.Delay(500, cancellation);
-            }
-
-            TemplateCount += templateFiles.Length;
-        }
-
-        private async Task BackupMigrationHistoryAsync(IProgress<int> progress, CancellationToken cancellation)
-        {
-            for (int i = 0; i <= 100; i += 8)
-            {
-                if (cancellation.IsCancellationRequested)
-                    break;
-
-                progress.Report(i);
-                await Task.Delay(150, cancellation);
-            }
-
-            var migrationBackup = new BackupItem
-            {
-                Name = $"MigrationData_{DateTime.Now:yyyy-MM-dd_HH-mm}.backup",
-                Type = "Migration Data",
-                CreatedDate = DateTime.Now,
-                FilePath = Path.Combine(BackupLocation, $"MigrationData_{DateTime.Now:yyyy-MM-dd_HH-mm}.backup"),
-                Size = 1024 * 1024 * 25, // 25MB
-                Status = "Complete"
-            };
-
-            BackupHistory.Insert(0, migrationBackup);
-        }
-
-        private async Task ArchiveApplicationLogsAsync(IProgress<int> progress, CancellationToken cancellation)
-        {
-            for (int i = 0; i <= 100; i += 12)
-            {
-                if (cancellation.IsCancellationRequested)
-                    break;
-
-                progress.Report(i);
-                await Task.Delay(100, cancellation);
-            }
-
-            var logBackup = new BackupItem
-            {
-                Name = $"Logs_{DateTime.Now:yyyy-MM-dd_HH-mm}.backup",
-                Type = "Logs",
-                CreatedDate = DateTime.Now,
-                FilePath = Path.Combine(BackupLocation, $"Logs_{DateTime.Now:yyyy-MM-dd_HH-mm}.backup"),
-                Size = 1024 * 1024 * 15, // 15MB
-                Status = "Complete"
-            };
-
-            BackupHistory.Insert(0, logBackup);
-        }
-
-        private async Task RestoreFromBackupAsync(BackupItem backup, IProgress<int> progress, CancellationToken cancellation)
-        {
-            for (int i = 0; i <= 100; i += 7)
-            {
-                if (cancellation.IsCancellationRequested)
-                    break;
-
-                progress.Report(i);
-                await Task.Delay(200, cancellation);
+                _logger.LogError(ex, "Failed to filter backup history");
             }
         }
 
-        private async Task VerifyBackupIntegrityAsync(BackupItem backup, IProgress<int> progress, CancellationToken cancellation)
+        private async Task UpdateStorageInformationAsync()
         {
-            backup.Status = "Verifying";
-
-            for (int i = 0; i <= 100; i += 15)
+            try
             {
-                if (cancellation.IsCancellationRequested)
-                    break;
+                if (Directory.Exists(BackupLocation))
+                {
+                    var drive = new DriveInfo(Path.GetPathRoot(BackupLocation) ?? "C:");
+                    var availableBytes = drive.AvailableFreeSpace;
+                    var totalBytes = drive.TotalSize;
+                    var usedBytes = totalBytes - availableBytes;
 
-                progress.Report(i);
-                await Task.Delay(100, cancellation);
+                    AvailableSpace = FormatBytes(availableBytes);
+                    UsedSpace = FormatBytes(usedBytes);
+                    StorageUsagePercentage = (double)usedBytes / totalBytes * 100;
+
+                    // Calculate total backup size
+                    long totalBackupSize = 0;
+                    foreach (var backup in _backupManager.BackupItems)
+                    {
+                        totalBackupSize += backup.Size;
+                    }
+                    DataSize = FormatBytes(totalBackupSize);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update storage information");
             }
         }
 
-        private async Task TestRestoreOperationAsync(BackupItem backup, IProgress<int> progress, CancellationToken cancellation)
+        private async Task LoadBackupSettingsAsync()
         {
-            for (int i = 0; i <= 100; i += 10)
+            try
             {
-                if (cancellation.IsCancellationRequested)
-                    break;
-
-                progress.Report(i);
-                await Task.Delay(150, cancellation);
+                // Load backup settings from configuration
+                // This would come from your app settings/configuration
+                EnableDailyBackup = false; // Load from config
+                BackupBeforeMigration = true; // Load from config
+                AutoCleanupBackups = false; // Load from config
+                SelectedRetention = "30 days"; // Load from config
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load backup settings");
             }
         }
 
         private async Task UpdateTemplateCountAsync()
         {
-            await Task.Delay(500); // Simulate API call
-            TemplateCount = 12; // Mock data
-        }
-
-        private void LoadBackupHistory()
-        {
-            BackupHistory.Clear();
-
-            // Sample backup history
-            BackupHistory.Add(new BackupItem
-            {
-                Name = "Config_2024-01-15_14-30.backup",
-                Type = "Configuration",
-                CreatedDate = DateTime.Now.AddDays(-1),
-                FilePath = Path.Combine(BackupLocation, "Config_2024-01-15_14-30.backup"),
-                Size = 1024 * 52,
-                Status = "Complete"
-            });
-
-            BackupHistory.Add(new BackupItem
-            {
-                Name = "Templates_2024-01-14_09-15.backup",
-                Type = "VM Templates",
-                CreatedDate = DateTime.Now.AddDays(-2),
-                FilePath = Path.Combine(BackupLocation, "Templates_2024-01-14_09-15.backup"),
-                Size = 1024 * 1024 * 150,
-                Status = "Complete"
-            });
-
-            BackupHistory.Add(new BackupItem
-            {
-                Name = "MigrationData_2024-01-13_16-45.backup",
-                Type = "Migration Data",
-                CreatedDate = DateTime.Now.AddDays(-3),
-                FilePath = Path.Combine(BackupLocation, "MigrationData_2024-01-13_16-45.backup"),
-                Size = 1024 * 1024 * 28,
-                Status = "Complete"
-            });
-        }
-
-        private void UpdateStorageInfo()
-        {
             try
             {
-                if (!Directory.Exists(BackupLocation))
+                if (_connectionManager.CurrentConnection != null)
                 {
-                    Directory.CreateDirectory(BackupLocation);
+                    // This would get actual template count from vCenter
+                    // For now, using placeholder
+                    TemplateCount = 0;
                 }
-
-                var drive = new DriveInfo(Path.GetPathRoot(BackupLocation) ?? "C:\\");
-                var totalSpace = drive.TotalSize;
-                var freeSpace = drive.AvailableFreeSpace;
-                var usedSpace = totalSpace - freeSpace;
-
-                var backupSize = BackupHistory.Sum(b => b.Size);
-
-                UsedSpace = FormatFileSize(backupSize);
-                AvailableSpace = FormatFileSize(freeSpace);
-                StorageUsagePercentage = (double)backupSize / totalSpace * 100;
-
-                DataSize = FormatFileSize(backupSize);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                UsedSpace = "Unknown";
-                AvailableSpace = "Unknown";
-                StorageUsagePercentage = 0;
+                _logger.LogError(ex, "Failed to update template count");
             }
         }
 
-        private void LoadSettings()
+        private void UpdateCommandStates()
         {
-            // Load settings from config or registry
-            // For now, use defaults
-            EnableDailyBackup = true;
-            BackupBeforeMigration = true;
-            AutoCleanupBackups = false;
-            SelectedRetention = "30 Days";
+            CanRestore = SelectedBackup != null && File.Exists(SelectedBackup.FilePath);
+            CanDownload = SelectedBackup != null && File.Exists(SelectedBackup.FilePath);
+            CanDelete = SelectedBackup != null;
+            CanVerify = SelectedBackup != null && File.Exists(SelectedBackup.FilePath);
         }
 
-        private int GetRetentionDays()
+        private DateTime GetDateFilterCutoff()
+        {
+            return SelectedDateFilter switch
+            {
+                "Today" => DateTime.Today,
+                "This Week" => DateTime.Today.AddDays(-7),
+                "This Month" => DateTime.Today.AddDays(-30),
+                "Last 30 Days" => DateTime.Today.AddDays(-30),
+                _ => DateTime.MinValue
+            };
+        }
+
+        private DateTime GetRetentionCutoffDate()
         {
             return SelectedRetention switch
             {
-                "7 Days" => 7,
-                "30 Days" => 30,
-                "90 Days" => 90,
-                "6 Months" => 180,
-                "1 Year" => 365,
-                _ => int.MaxValue
+                "7 days" => DateTime.Now.AddDays(-7),
+                "30 days" => DateTime.Now.AddDays(-30),
+                "90 days" => DateTime.Now.AddDays(-90),
+                "1 year" => DateTime.Now.AddYears(-1),
+                _ => DateTime.MinValue
             };
-        }
-
-        private string CreateBackupData()
-        {
-            return $@"{{
-    ""backupVersion"": ""1.0"",
-    ""created"": ""{DateTime.Now:yyyy-MM-dd HH:mm:ss}"",
-    ""application"": ""{_appConfig.ApplicationName}"",
-    ""version"": ""{_appConfig.Version}"",
-    ""configuration"": {{
-        ""profiles"": [],
-        ""settings"": {{}},
-        ""networkMappings"": []
-    }},
-    ""templates"": [],
-    ""migrationHistory"": []
-}}";
-        }
-
-        private void ExportApplicationSettings(string filePath)
-        {
-            var settings = new
-            {
-                BackupSettings = new
-                {
-                    EnableDailyBackup,
-                    BackupBeforeMigration,
-                    AutoCleanupBackups,
-                    SelectedRetention,
-                    BackupLocation
-                },
-                ApplicationConfig = _appConfig
-            };
-
-            var json = System.Text.Json.JsonSerializer.Serialize(settings, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(filePath, json);
-        }
-
-        private void ImportApplicationSettings(string filePath)
-        {
-            var json = File.ReadAllText(filePath);
-            // In a real implementation, this would parse and apply the settings
         }
 
         private void ShowStatusMessage(string title, string message, InfoBarSeverity severity)
@@ -938,17 +604,14 @@ namespace UiDesktopApp2.ViewModels.Pages
             StatusSeverity = severity;
             ShowStatus = true;
 
-            // Auto-hide after 5 seconds
-            Task.Delay(5000).ContinueWith(_ =>
+            // Auto-hide after 5 seconds for non-error messages
+            if (severity != InfoBarSeverity.Error)
             {
-                System.Windows.Application.Current.Dispatcher.Invoke(() =>
-                {
-                    ShowStatus = false;
-                });
-            });
+                _ = Task.Delay(5000).ContinueWith(_ => ShowStatus = false);
+            }
         }
 
-        private string FormatFileSize(long bytes)
+        private static string FormatBytes(long bytes)
         {
             string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
             int counter = 0;

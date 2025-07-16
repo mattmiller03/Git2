@@ -1,5 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using System.Security;
 using System.Threading.Tasks;
@@ -15,7 +16,7 @@ namespace UiDesktopApp2.ViewModels.Pages
         private readonly IProfileManager _profileManager;
         private readonly ICredentialManager _credentialManager;
 
-        public ConnectionViewModel(ConnectionManager connectionManager, IProfileManager profileManager, ICredentialManager credentialManager)
+        public ConnectionViewModel(ConnectionManager connectionManager, IProfileManager profileManager, ICredentialManager credentialManager, ILogger<ConnectionViewModel> logger)
         {
             _connectionManager = connectionManager;
             _profileManager = profileManager;
@@ -48,9 +49,9 @@ namespace UiDesktopApp2.ViewModels.Pages
         [ObservableProperty]
         private ObservableCollection<ConnectionProfile> savedProfiles = new();
 
-        // Selected profile from ComboBox
+        // Selected profile from ComboBox - FIXED: Made nullable to resolve CS8618 warning
         [ObservableProperty]
-        private ConnectionProfile selectedProfile;
+        private ConnectionProfile? selectedProfile;
 
         // Status info properties
         [ObservableProperty]
