@@ -50,7 +50,7 @@ namespace UiDesktopApp2.ViewModels.Pages
 
                 var result = await dialog.ShowAsync();
 
-                if (result == ContentDialogResult.Primary && dialog.SelectedProfileResult != null)
+                if (dialog.SelectedProfileResult != null)
                 {
                     var selectedProfile = dialog.SelectedProfileResult;
 

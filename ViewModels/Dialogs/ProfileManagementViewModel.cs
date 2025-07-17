@@ -11,6 +11,7 @@ using UiDesktopApp2.Helpers;
 using UiDesktopApp2.Models;
 using UiDesktopApp2.Services;
 using Wpf.Ui.Controls;
+using UiDesktopApp2.Resources;
 
 namespace UiDesktopApp2.ViewModels.Dialogs
 {
@@ -89,7 +90,7 @@ namespace UiDesktopApp2.ViewModels.Dialogs
         }
 
         [RelayCommand]
-        private async Task LoadProfilesAsync()
+        public async Task LoadProfilesAsync()
         {
             try
             {

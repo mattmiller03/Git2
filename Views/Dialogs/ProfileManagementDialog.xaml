@@ -4,15 +4,17 @@
                   xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                   xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                   xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-                  xmlns:viewModels="clr-namespace:UiDesktopApp2.ViewModels.Dialogs"
+                  xmlns:converters="clr-namespace:UiDesktopApp2.Converters"
                   mc:Ignorable="d"
-                  d:DataContext="{d:DesignInstance viewModels:ProfileManagementViewModel}"
                   Title="Manage Connection Profiles"
                   PrimaryButtonText="Load Selected"
                   SecondaryButtonText="Close"
                   DefaultButton="Primary"
                   MinWidth="600"
                   MinHeight="500">
+
+    <ui:ContentDialog.Resources>
+    </ui:ContentDialog.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
@@ -183,7 +185,7 @@
                               HorizontalAlignment="Stretch"
                               Margin="0,8,0,0">
                         <ui:Button.Icon>
-                            <ui:SymbolIcon Symbol="DocumentArrowUp24" />
+                            <ui:SymbolIcon Symbol="ArrowUpload24" />
                         </ui:Button.Icon>
                     </ui:Button>
                 </StackPanel>

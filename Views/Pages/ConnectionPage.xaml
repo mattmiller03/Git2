@@ -3,14 +3,13 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       xmlns:converters="clr-namespace:UiDesktopApp2.Converters"
-      xmlns:viewModels="clr-namespace:UiDesktopApp2.ViewModels.Pages"
+
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
       mc:Ignorable="d"
-      d:DataContext="{d:DesignInstance viewModels:ConnectionViewModel}"
-      Title="Connection" Height="1547">
+      Title="Connection">
+
     <Page.Resources>
-        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
     </Page.Resources>
     <Grid Style="{StaticResource PageContentGrid}">
         <ScrollViewer>

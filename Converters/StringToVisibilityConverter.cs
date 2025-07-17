@@ -9,7 +9,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
-namespace UiDesktopApp2.Converters
+namespace UiDesktopApp2
 {
     public class StringToVisibilityConverter : IValueConverter
     {
@@ -30,4 +30,3 @@ namespace UiDesktopApp2.Converters
         }
     }
 }
-

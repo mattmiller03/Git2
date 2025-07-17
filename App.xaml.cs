@@ -290,8 +290,8 @@ namespace UiDesktopApp2
             services.AddSingleton<ILogManager, LogManager>();
 
             // Add to your ConfigureServices method
-            services.AddTransient<ProfileManagementViewModel>();
-            services.AddTransient<ProfileManagementDialog>();
+            services.AddSingleton<ProfileManagementViewModel>();
+            services.AddSingleton<ProfileManagementDialog>();
 
             // Register BackupManager - BOTH interface and implementation
             services.AddSingleton<IBackupManager, BackupManager>();
