@@ -9,7 +9,6 @@
             <ResourceDictionary.MergedDictionaries>
                 <ui:ThemesDictionary Theme="Dark" />
                 <ui:ControlsDictionary />
-                <ResourceDictionary Source="Resources/Converters.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <!-- Missing WPF UI Brushes - Add these -->
             <SolidColorBrush x:Key="ApplicationBackgroundBrush" Color="#FF202020" />

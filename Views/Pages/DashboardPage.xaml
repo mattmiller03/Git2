@@ -9,7 +9,10 @@
       mc:Ignorable="d"
       d:DataContext="{d:DesignInstance viewModels:DashboardViewModel}"
       Title="Dashboard">
-
+    <Page.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:IntToVisibilityConverter x:Key="IntToVisibilityConverter" />
+    </Page.Resources>
     <Grid Style="{StaticResource PageContentGrid}">
         <ScrollViewer>
             <StackPanel Style="{StaticResource SectionStackPanel}">

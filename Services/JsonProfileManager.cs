@@ -84,12 +84,28 @@ namespace UiDesktopApp2.Services
         {
             try
             {
-                var profile = GetProfile(name);
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    throw new ArgumentException("Profile name cannot be empty", nameof(name));
+                }
+
+                _logger.LogInformation($"Attempting to delete profile: '{name}'");
+
+                // Find profile with case-insensitive comparison
+                var profile = _profiles.FirstOrDefault(p =>
+                    string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+
                 if (profile != null)
                 {
                     _profiles.Remove(profile);
                     SaveToFile();
-                    _logger.LogInformation("Deleted profile: {ProfileName}", name);
+                    _logger.LogInformation("Successfully deleted profile: {ProfileName}", name);
+                }
+                else
+                {
+                    _logger.LogWarning("Profile not found for deletion: {ProfileName}", name);
+                    // Don't throw an exception, just log the warning
+                    // This allows the UI to handle the "not found" case gracefully
                 }
             }
             catch (Exception ex)

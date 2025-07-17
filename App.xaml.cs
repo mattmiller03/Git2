@@ -9,8 +9,10 @@ using System.Windows.Threading;
 using UiDesktopApp2.Helpers;
 using UiDesktopApp2.Models;
 using UiDesktopApp2.Services;
+using UiDesktopApp2.ViewModels.Dialogs;
 using UiDesktopApp2.ViewModels.Pages;
 using UiDesktopApp2.ViewModels.Windows;
+using UiDesktopApp2.Views.Dialogs;
 using UiDesktopApp2.Views.Pages;
 using UiDesktopApp2.Views.Windows;
 using Wpf.Ui;
@@ -210,6 +212,14 @@ namespace UiDesktopApp2
 
         private static void ConfigureServices(HostBuilderContext context, IServiceCollection services)
         {
+            // Configure logging
+            services.AddLogging(builder =>
+            {
+                builder.AddConsole();
+                builder.AddDebug();
+                builder.SetMinimumLevel(LogLevel.Information);
+            });
+
             // App config
             var appConfig = context.Configuration.GetSection("AppConfig").Get<AppConfig>() ?? new AppConfig();
             services.AddSingleton(appConfig);
@@ -221,7 +231,11 @@ namespace UiDesktopApp2
             services.AddSingleton<INavigationViewPageProvider, NavigationViewPageProvider>();
             services.AddSingleton<IThemeService, ThemeService>();
             services.AddSingleton<ITaskBarService, TaskBarService>();
+
+            // Register Wpf.Ui services
             services.AddSingleton<INavigationService, NavigationService>();
+            services.AddSingleton<ISnackbarService, SnackbarService>();
+            services.AddSingleton<IContentDialogService, ContentDialogService>();
 
             // Windows and viewmodels
             services.AddSingleton<MainWindowViewModel>();
@@ -236,37 +250,55 @@ namespace UiDesktopApp2
                 return new MainWindow(vm, pageProvider, navigationService, themeService);
             });
 
-            // Pages and viewmodels
-            services.AddSingleton<DashboardPage>();
-            services.AddSingleton<DashboardViewModel>();
-            services.AddSingleton<ConnectionPage>();
-            services.AddSingleton<ConnectionViewModel>();
-            services.AddSingleton<DataPage>();
-            services.AddSingleton<DataViewModel>();
-            services.AddSingleton<MigrationPage>();
-            services.AddSingleton<MigrationViewModel>();
-            services.AddSingleton<BackupPage>();
-            services.AddSingleton<BackupViewModel>();
-            services.AddSingleton<LogsPage>();
-            services.AddSingleton<LogsViewModel>();
-            services.AddSingleton<SettingsPage>();
-            services.AddSingleton<SettingsViewModel>();
+            // Pages
             services.AddSingleton<AboutPage>();
+            services.AddSingleton<BackupPage>();
+            services.AddSingleton<ConnectionPage>();
+            services.AddSingleton<DashboardPage>();
+            services.AddSingleton<DataPage>();
+            services.AddSingleton<LogsPage>();
+            services.AddSingleton<MigrationPage>();
+            services.AddSingleton<SettingsPage>();
+            services.AddSingleton<ValidationPage>();
+
+            // Register application services
+            services.AddSingleton<ApplicationHostService>();
+            services.AddSingleton<NavigationViewPageProvider>();
+
+
+            //ViewModels
             services.AddSingleton<AboutViewModel>();
-            // Profile Management
-            services.AddSingleton<IProfileManager, JsonProfileManager>();
+            services.AddSingleton<BackupViewModel>();
+            services.AddSingleton<ConnectionViewModel>();
+            services.AddSingleton<DashboardViewModel>();
+            services.AddSingleton<DataViewModel>();
+            services.AddSingleton<LogsViewModel>();
+            services.AddSingleton<MigrationViewModel>();
+            services.AddSingleton<SettingsViewModel>();
+            services.AddSingleton<ValidationViewModel>();
 
 
-            // Application services
-            services.AddSingleton<ILogManager, LogManager>();
-            services.AddSingleton<IPowerShellScriptManager, PowerShellScriptManager>();
+   
+             // Register core services
             services.AddSingleton<PowerShellManager>();
-            services.AddSingleton<ICredentialManager, WindowsCredentialManager>();
             services.AddSingleton<ConnectionManager>();
 
+            // Register your custom services (INTERFACES FIRST, then IMPLEMENTATIONS)
+            services.AddSingleton<IProfileManager, JsonProfileManager>();
+            services.AddSingleton<ICredentialManager, WindowsCredentialManager>();
+            services.AddSingleton<IPowerShellScriptManager, PowerShellScriptManager>();
+            services.AddSingleton<ILogManager, LogManager>();
 
-            // Hosted services
-            services.AddHostedService<ApplicationHostService>();
+            // Add to your ConfigureServices method
+            services.AddTransient<ProfileManagementViewModel>();
+            services.AddTransient<ProfileManagementDialog>();
+
+            // Register BackupManager - BOTH interface and implementation
+            services.AddSingleton<IBackupManager, BackupManager>();
+            services.AddSingleton<BackupManager>();
+
+
+
         }
 
         private static void LogStartupError(Exception ex)

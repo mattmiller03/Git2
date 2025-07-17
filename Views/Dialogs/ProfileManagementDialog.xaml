@@ -1,0 +1,201 @@
+﻿<ui:ContentDialog x:Class="UiDesktopApp2.Views.Dialogs.ProfileManagementDialog"
+                  xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                  xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                  xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                  xmlns:viewModels="clr-namespace:UiDesktopApp2.ViewModels.Dialogs"
+                  mc:Ignorable="d"
+                  d:DataContext="{d:DesignInstance viewModels:ProfileManagementViewModel}"
+                  Title="Manage Connection Profiles"
+                  PrimaryButtonText="Load Selected"
+                  SecondaryButtonText="Close"
+                  DefaultButton="Primary"
+                  MinWidth="600"
+                  MinHeight="500">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="Connection Profiles" 
+                      Style="{StaticResource SubtitleTextBlockStyle}" />
+            <TextBlock Text="Manage your saved vCenter connection profiles" 
+                      Style="{StaticResource BodyTextBlockStyle}" />
+        </StackPanel>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="300" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Profiles List -->
+            <ui:Card Grid.Column="0" Padding="16">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="Saved Profiles" 
+                                  Style="{StaticResource HeaderTextBlockStyle}"
+                                  Grid.Column="0" />
+
+                        <ui:Button Content="Refresh" 
+                                  Style="{StaticResource SecondaryButton}"
+                                  Command="{Binding RefreshCommand}"
+                                  Grid.Column="1" />
+                    </Grid>
+
+                    <!-- Search/Filter -->
+                    <ui:TextBox Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                               PlaceholderText="Search profiles..."
+                               Margin="0,8,0,8">
+                        <ui:TextBox.Icon>
+                            <ui:SymbolIcon Symbol="Search24" />
+                        </ui:TextBox.Icon>
+                    </ui:TextBox>
+
+                    <!-- Profiles DataGrid -->
+                    <DataGrid ItemsSource="{Binding FilteredProfiles}"
+                             SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
+                             AutoGenerateColumns="False"
+                             IsReadOnly="True"
+                             GridLinesVisibility="Horizontal"
+                             HeadersVisibility="Column"
+                             SelectionMode="Single"
+                             Height="300"
+                             Margin="0,8,0,0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Name" 
+                                               Binding="{Binding Name}" 
+                                               Width="*" />
+                            <DataGridTextColumn Header="Server" 
+                                               Binding="{Binding ServerAddress}" 
+                                               Width="200" />
+                            <DataGridTextColumn Header="Username" 
+                                               Binding="{Binding Username}" 
+                                               Width="150" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Profile count -->
+                    <TextBlock Text="{Binding FilteredProfiles.Count, StringFormat='{}{0} profiles'}" 
+                              Style="{StaticResource CaptionTextBlockStyle}"
+                              Margin="0,8,0,0" />
+                </StackPanel>
+            </ui:Card>
+
+            <!-- Profile Details and Actions -->
+            <ui:Card Grid.Column="2" Padding="16">
+                <StackPanel>
+                    <TextBlock Text="Profile Details" 
+                              Style="{StaticResource HeaderTextBlockStyle}" />
+
+                    <!-- Profile details (shown when profile is selected) -->
+                    <StackPanel Visibility="{Binding SelectedProfile, Converter={StaticResource NullToVisibilityConverter}}"
+                               Margin="0,16,0,0">
+
+                        <TextBlock Text="Name:" 
+                                  Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock Text="{Binding SelectedProfile.Name}" 
+                                  Style="{StaticResource BodyTextBlockStyle}"
+                                  FontWeight="SemiBold"
+                                  Margin="0,0,0,8" />
+
+                        <TextBlock Text="Server Address:" 
+                                  Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock Text="{Binding SelectedProfile.ServerAddress}" 
+                                  Style="{StaticResource BodyTextBlockStyle}"
+                                  Margin="0,0,0,8" />
+
+                        <TextBlock Text="Username:" 
+                                  Style="{StaticResource CaptionTextBlockStyle}" />
+                        <TextBlock Text="{Binding SelectedProfile.Username}" 
+                                  Style="{StaticResource BodyTextBlockStyle}"
+                                  Margin="0,0,0,16" />
+
+                        <!-- Actions -->
+                        <StackPanel>
+                            <ui:Button Content="Test Connection" 
+                                      Style="{StaticResource PrimaryButton}"
+                                      Command="{Binding TestConnectionCommand}"
+                                      HorizontalAlignment="Stretch"
+                                      Margin="0,0,0,8" />
+
+                            <ui:Button Content="Edit Profile" 
+                                      Style="{StaticResource SecondaryButton}"
+                                      Command="{Binding EditProfileCommand}"
+                                      HorizontalAlignment="Stretch"
+                                      Margin="0,0,0,8" />
+
+                            <ui:Button Content="Duplicate Profile" 
+                                      Style="{StaticResource SecondaryButton}"
+                                      Command="{Binding DuplicateProfileCommand}"
+                                      HorizontalAlignment="Stretch"
+                                      Margin="0,0,0,8" />
+
+                            <ui:Button Content="Export Profile" 
+                                      Style="{StaticResource SecondaryButton}"
+                                      Command="{Binding ExportProfileCommand}"
+                                      HorizontalAlignment="Stretch"
+                                      Margin="0,0,0,16" />
+
+                            <ui:Button Content="Delete Profile" 
+                                      Style="{StaticResource DangerButton}"
+                                      Command="{Binding DeleteProfileCommand}"
+                                      HorizontalAlignment="Stretch" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- No selection message -->
+                    <TextBlock Text="Select a profile to view details and actions" 
+                              Style="{StaticResource BodyTextBlockStyle}"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              Margin="0,32,0,0"
+                              Visibility="{Binding SelectedProfile, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}" />
+
+                    <!-- Add New Profile -->
+                    <Separator Margin="0,16,0,16" />
+
+                    <ui:Button Content="Add New Profile" 
+                              Style="{StaticResource AccentButton}"
+                              Command="{Binding AddNewProfileCommand}"
+                              HorizontalAlignment="Stretch">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="Add24" />
+                        </ui:Button.Icon>
+                    </ui:Button>
+
+                    <ui:Button Content="Import Profiles" 
+                              Style="{StaticResource SecondaryButton}"
+                              Command="{Binding ImportProfilesCommand}"
+                              HorizontalAlignment="Stretch"
+                              Margin="0,8,0,0">
+                        <ui:Button.Icon>
+                            <ui:SymbolIcon Symbol="DocumentArrowUp24" />
+                        </ui:Button.Icon>
+                    </ui:Button>
+                </StackPanel>
+            </ui:Card>
+        </Grid>
+
+        <!-- Status Bar -->
+        <ui:InfoBar Grid.Row="2"
+                   Title="{Binding StatusTitle}"
+                   Message="{Binding StatusMessage}"
+                   Severity="{Binding StatusSeverity}"
+                   IsOpen="{Binding ShowStatus}"
+                   Margin="0,16,0,0" />
+    </Grid>
+</ui:ContentDialog>

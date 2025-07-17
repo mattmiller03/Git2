@@ -4,12 +4,17 @@
       xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:converters="clr-namespace:UiDesktopApp2.Converters"
+      xmlns:viewModels="clr-namespace:UiDesktopApp2.ViewModels.Pages"
       mc:Ignorable="d"
-      Title="Connection">
-
+      d:DataContext="{d:DesignInstance viewModels:ConnectionViewModel}"
+      Title="Connection" Height="1547">
+    <Page.Resources>
+        <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+    </Page.Resources>
     <Grid Style="{StaticResource PageContentGrid}">
         <ScrollViewer>
-            <StackPanel Style="{StaticResource SectionStackPanel}">
+            <StackPanel Style="{StaticResource SectionStackPanel}" Height="1445">
 
                 <!-- Page Title -->
                 <TextBlock Text="vCenter Connection Management" 
@@ -18,14 +23,53 @@
                 <!-- Source vCenter Section -->
                 <ui:Card Style="{StaticResource SectionCard}">
                     <StackPanel Style="{StaticResource FormStackPanel}">
-                        <TextBlock Text="Source vCenter" 
-                                  Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
 
-                        <Label Content="Server Address:" 
+                            <TextBlock Text="Source vCenter" 
+                                      Style="{StaticResource SubtitleTextBlockStyle}"
+                                      Grid.Column="0" />
+
+                            <ui:Button Content="Copy to Destination" 
+                                      Style="{StaticResource SecondaryButton}"
+                                      Command="{Binding CopySourceToDestinationCommand}"
+                                      Grid.Column="1" />
+                        </Grid>
+
+                        <Label Content="vCenter Server:" 
                                Style="{StaticResource FormLabel}" />
-                        <ui:TextBox Text="{Binding SourceServerAddress, Mode=TwoWay}"
-                                   PlaceholderText="vcenter01.domain.com"
-                                   Style="{StaticResource FormTextBox}" />
+                        <ComboBox ItemsSource="{Binding AvailableServers}"
+                                  SelectedItem="{Binding SelectedSourceServer, Mode=TwoWay}"
+                                  Style="{StaticResource FormComboBox}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="4">
+                                        <TextBlock Text="{Binding Name}" 
+                                                  FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                        <TextBlock Text="{Binding Address}" 
+                                                  FontSize="12"
+                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Text="{Binding Description}" 
+                                                  FontSize="11"
+                                                  FontStyle="Italic"
+                                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
+                        <!-- Custom server address input (shown when Custom Server is selected) -->
+                        <Label Content="Custom Server Address:" 
+                               Style="{StaticResource FormLabel}"
+                               Visibility="{Binding SelectedSourceServer.Name, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='Custom Server'}" />
+                        <ui:TextBox Text="{Binding SelectedSourceServer.Address, Mode=TwoWay}"
+                                   PlaceholderText="Enter custom vCenter address"
+                                   Style="{StaticResource FormTextBox}"
+                                   Visibility="{Binding SelectedSourceServer.Name, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='Custom Server'}" />
 
                         <Label Content="Username:" 
                                Style="{StaticResource FormLabel}" />
@@ -43,9 +87,6 @@
                                       Style="{StaticResource PrimaryButton}"
                                       Command="{Binding TestSourceConnectionCommand}" 
                                       Margin="0,0,10,0" />
-                            <ui:Button Content="Save Profile" 
-                                      Style="{StaticResource SecondaryButton}"
-                                      Command="{Binding SaveSourceProfileCommand}" />
                         </StackPanel>
                     </StackPanel>
                 </ui:Card>
@@ -56,11 +97,37 @@
                         <TextBlock Text="Destination vCenter" 
                                   Style="{StaticResource SubtitleTextBlockStyle}" />
 
-                        <Label Content="Server Address:" 
+                        <Label Content="vCenter Server:" 
                                Style="{StaticResource FormLabel}" />
-                        <ui:TextBox Text="{Binding DestinationServerAddress, Mode=TwoWay}"
-                                   PlaceholderText="vcenter02.domain.com"
-                                   Style="{StaticResource FormTextBox}" />
+                        <ComboBox ItemsSource="{Binding AvailableServers}"
+                                  SelectedItem="{Binding SelectedDestinationServer, Mode=TwoWay}"
+                                  Style="{StaticResource FormComboBox}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="4">
+                                        <TextBlock Text="{Binding Name}" 
+                                                  FontWeight="SemiBold"
+                                                  Foreground="{DynamicResource TextFillColorPrimaryBrush}" />
+                                        <TextBlock Text="{Binding Address}" 
+                                                  FontSize="12"
+                                                  Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                        <TextBlock Text="{Binding Description}" 
+                                                  FontSize="11"
+                                                  FontStyle="Italic"
+                                                  Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+
+                        <!-- Custom server address input (shown when Custom Server is selected) -->
+                        <Label Content="Custom Server Address:" 
+                               Style="{StaticResource FormLabel}"
+                               Visibility="{Binding SelectedDestinationServer.Name, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='Custom Server'}" />
+                        <ui:TextBox Text="{Binding SelectedDestinationServer.Address, Mode=TwoWay}"
+                                   PlaceholderText="Enter custom vCenter address"
+                                   Style="{StaticResource FormTextBox}"
+                                   Visibility="{Binding SelectedDestinationServer.Name, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='Custom Server'}" />
 
                         <Label Content="Username:" 
                                Style="{StaticResource FormLabel}" />
@@ -78,36 +145,27 @@
                                       Style="{StaticResource PrimaryButton}"
                                       Command="{Binding TestDestinationConnectionCommand}" 
                                       Margin="0,0,10,0" />
-                            <ui:Button Content="Save Profile" 
-                                      Style="{StaticResource SecondaryButton}"
-                                      Command="{Binding SaveDestinationProfileCommand}" />
                         </StackPanel>
                     </StackPanel>
                 </ui:Card>
 
-                <!-- Saved Profiles Section -->
+                <!-- Replace the entire Saved Profiles Section with this -->
                 <ui:Card Style="{StaticResource SectionCard}">
                     <StackPanel>
-                        <TextBlock Text="Saved Connection Profiles" 
-                                  Style="{StaticResource SubtitleTextBlockStyle}" />
+                        <TextBlock Text="Profile Management" 
+                  Style="{StaticResource SubtitleTextBlockStyle}" />
 
-                        <TextBlock Text="Select a previously saved connection profile" 
-                                  Style="{StaticResource BodyTextBlockStyle}" />
-
-                        <Label Content="Profile:" 
-                               Style="{StaticResource FormLabel}" />
-                        <ComboBox ItemsSource="{Binding SavedProfiles}"
-                                  SelectedItem="{Binding SelectedProfile, Mode=TwoWay}"
-                                  Style="{StaticResource FormComboBox}" />
+                        <TextBlock Text="Manage your saved connection profiles" 
+                  Style="{StaticResource BodyTextBlockStyle}" />
 
                         <StackPanel Orientation="Horizontal" Margin="0,16,0,0" HorizontalAlignment="Right">
-                            <ui:Button Content="Load Profile" 
-                                      Style="{StaticResource PrimaryButton}"
-                                      Command="{Binding LoadProfileCommand}" 
-                                      Margin="0,0,10,0" />
-                            <ui:Button Content="Delete Profile" 
-                                      Style="{StaticResource DangerButton}"
-                                      Command="{Binding DeleteProfileCommand}" />
+                            <ui:Button Content="Manage Profiles" 
+                      Style="{StaticResource PrimaryButton}"
+                      Command="{Binding ManageProfilesCommand}">
+                                <ui:Button.Icon>
+                                    <ui:SymbolIcon Symbol="Settings24" />
+                                </ui:Button.Icon>
+                            </ui:Button>
                         </StackPanel>
                     </StackPanel>
                 </ui:Card>

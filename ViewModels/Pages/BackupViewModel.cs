@@ -149,7 +149,7 @@ namespace UiDesktopApp2.ViewModels.Pages
         }
 
         [RelayCommand]
-        private async Task LoadDataAsync()
+        public async Task LoadDataAsync()
         {
             try
             {
