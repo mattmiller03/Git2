@@ -1,17 +1,17 @@
-﻿using System;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Data;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using Microsoft.Extensions.Logging;
 using UiDesktopApp2.Helpers;
 using UiDesktopApp2.Models;
 using UiDesktopApp2.Services;
 using Wpf.Ui.Controls;
-using UiDesktopApp2.Resources;
+using System.Windows;
 
 namespace UiDesktopApp2.ViewModels.Dialogs
 {
@@ -90,17 +90,21 @@ namespace UiDesktopApp2.ViewModels.Dialogs
         }
 
         [RelayCommand]
-        public async Task LoadProfilesAsync()
+        private async Task LoadProfilesAsync()
         {
             try
             {
-                Profiles.Clear();
-                var profiles = _profileManager.GetAllProfiles();
-
-                foreach (var profile in profiles)
+                // Run the profile loading on UI thread
+                await Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    Profiles.Add(profile);
-                }
+                    Profiles.Clear();
+                    var profiles = _profileManager.GetAllProfiles();
+
+                    foreach (var profile in profiles)
+                    {
+                        Profiles.Add(profile);
+                    }
+                });
 
                 ShowStatusMessage("Profiles Loaded", $"Loaded {Profiles.Count} profiles", InfoBarSeverity.Success);
                 _logger.LogInformation("Loaded {Count} profiles", Profiles.Count);
@@ -149,8 +153,6 @@ namespace UiDesktopApp2.ViewModels.Dialogs
         private void EditProfile()
         {
             if (SelectedProfile == null) return;
-
-            // TODO: Open edit profile dialog
             ShowStatusMessage("Edit Profile", "Edit profile functionality coming soon", InfoBarSeverity.Informational);
         }
 
@@ -201,8 +203,6 @@ namespace UiDesktopApp2.ViewModels.Dialogs
         private void ExportProfile()
         {
             if (SelectedProfile == null) return;
-
-            // TODO: Implement profile export
             ShowStatusMessage("Export Profile", "Export functionality coming soon", InfoBarSeverity.Informational);
         }
 
@@ -242,14 +242,12 @@ namespace UiDesktopApp2.ViewModels.Dialogs
         [RelayCommand]
         private void AddNewProfile()
         {
-            // TODO: Open add new profile dialog
             ShowStatusMessage("Add Profile", "Add new profile functionality coming soon", InfoBarSeverity.Informational);
         }
 
         [RelayCommand]
         private void ImportProfiles()
         {
-            // TODO: Implement profile import
             ShowStatusMessage("Import Profiles", "Import functionality coming soon", InfoBarSeverity.Informational);
         }
 

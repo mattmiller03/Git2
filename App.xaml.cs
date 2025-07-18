@@ -261,6 +261,7 @@ namespace UiDesktopApp2
             services.AddSingleton<SettingsPage>();
             services.AddSingleton<ValidationPage>();
 
+
             // Register application services
             services.AddSingleton<ApplicationHostService>();
             services.AddSingleton<NavigationViewPageProvider>();
@@ -276,12 +277,15 @@ namespace UiDesktopApp2
             services.AddSingleton<MigrationViewModel>();
             services.AddSingleton<SettingsViewModel>();
             services.AddSingleton<ValidationViewModel>();
+            services.AddTransient<ProfileManagementViewModel>();
 
+            services.AddSingleton<ILogger<ProfileManagementViewModel>>(provider =>
+                provider.GetRequiredService<ILoggerFactory>().CreateLogger<ProfileManagementViewModel>());
 
-   
-             // Register core services
+            // Register core services
             services.AddSingleton<PowerShellManager>();
             services.AddSingleton<ConnectionManager>();
+            services.AddSingleton<IContentDialogService, ContentDialogService>();
 
             // Register your custom services (INTERFACES FIRST, then IMPLEMENTATIONS)
             services.AddSingleton<IProfileManager, JsonProfileManager>();
@@ -290,7 +294,6 @@ namespace UiDesktopApp2
             services.AddSingleton<ILogManager, LogManager>();
 
             // Add to your ConfigureServices method
-            services.AddSingleton<ProfileManagementViewModel>();
             services.AddSingleton<ProfileManagementDialog>();
 
             // Register BackupManager - BOTH interface and implementation

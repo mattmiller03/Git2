@@ -14,6 +14,7 @@
                   MinHeight="500">
 
     <ui:ContentDialog.Resources>
+        <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter" />
     </ui:ContentDialog.Resources>
 
     <Grid>
@@ -171,9 +172,9 @@
                     <Separator Margin="0,16,0,16" />
 
                     <ui:Button Content="Add New Profile" 
-                              Style="{StaticResource AccentButton}"
-                              Command="{Binding AddNewProfileCommand}"
-                              HorizontalAlignment="Stretch">
+                          Style="{StaticResource PrimaryButton}"
+                          Command="{Binding AddNewProfileCommand}"
+                          HorizontalAlignment="Stretch">
                         <ui:Button.Icon>
                             <ui:SymbolIcon Symbol="Add24" />
                         </ui:Button.Icon>

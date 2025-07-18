@@ -5,12 +5,13 @@
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
       xmlns:converters="clr-namespace:UiDesktopApp2.Converters"
 
-      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml" xmlns:local="clr-namespace:UiDesktopApp2"
       mc:Ignorable="d"
       Title="Connection">
 
-    <Page.Resources>
-    </Page.Resources>
+        <Page.Resources>
+            <local:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        </Page.Resources>
     <Grid Style="{StaticResource PageContentGrid}">
         <ScrollViewer>
             <StackPanel Style="{StaticResource SectionStackPanel}" Height="1445">

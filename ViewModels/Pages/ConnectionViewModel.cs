@@ -3,7 +3,6 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
-using System.Linq;
 using System.Security;
 using System.Threading.Tasks;
 using UiDesktopApp2.Helpers;
@@ -11,7 +10,13 @@ using UiDesktopApp2.Models;
 using UiDesktopApp2.Services;
 using UiDesktopApp2.ViewModels.Dialogs;
 using UiDesktopApp2.Views.Dialogs;
+using Wpf.Ui;
 using Wpf.Ui.Controls;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Windows;
+using Wpf.Ui.Abstractions.Controls;
 
 namespace UiDesktopApp2.ViewModels.Pages
 {
@@ -22,6 +27,7 @@ namespace UiDesktopApp2.ViewModels.Pages
         private readonly ICredentialManager _credentialManager;
         private readonly ILogger<ConnectionViewModel> _logger;
         private readonly IServiceProvider _serviceProvider;
+        private readonly IContentDialogService _contentDialogService;
 
         // Update constructor
         public ConnectionViewModel(
@@ -29,7 +35,8 @@ namespace UiDesktopApp2.ViewModels.Pages
             IProfileManager profileManager,
             ICredentialManager credentialManager,
             ILogger<ConnectionViewModel> logger,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider,
+            IContentDialogService contentDialogService)
         {
             _connectionManager = connectionManager;
             _profileManager = profileManager;
@@ -46,14 +53,16 @@ namespace UiDesktopApp2.ViewModels.Pages
             try
             {
                 var dialogViewModel = _serviceProvider.GetRequiredService<ProfileManagementViewModel>();
-                var dialog = new ProfileManagementDialog(dialogViewModel);
+                var dialog = new Views.Dialogs.ProfileManagementDialog(dialogViewModel);
 
+                // Show the dialog directly (no Owner needed)
                 var result = await dialog.ShowAsync();
 
-                if (dialog.SelectedProfileResult != null)
-                {
-                    var selectedProfile = dialog.SelectedProfileResult;
+                // Check if a profile was selected
+                var selectedProfile = dialog.SelectedProfileResult ?? dialog.GetSelectedProfile();
 
+                if (selectedProfile != null)
+                {
                     // Load the selected profile
                     var matchingServer = AvailableServers.FirstOrDefault(s => s.Address == selectedProfile.ServerAddress);
 
@@ -93,6 +102,7 @@ namespace UiDesktopApp2.ViewModels.Pages
                 IsStatusOpen = true;
             }
         }
+
 
         // Available vCenter servers for dropdown selection
         [ObservableProperty]

@@ -1,60 +1,86 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Windows;
-using UiDesktopApp2.ViewModels.Windows;
+using UiDesktopApp2.Views.Pages;
 using Wpf.Ui;
 using Wpf.Ui.Abstractions;
-using Wpf.Ui.Appearance;
+using Wpf.Ui.Abstractions.Controls;
 using Wpf.Ui.Controls;
-using UiDesktopApp2.Models;
 
 namespace UiDesktopApp2.Views.Windows
 {
-    public partial class MainWindow : INavigationWindow
+    public partial class MainWindow : FluentWindow, INavigationWindow
     {
-        public MainWindowViewModel ViewModel { get; }
+        private readonly INavigationService _navigationService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ISnackbarService _snackbarService;
 
         public MainWindow(
-            MainWindowViewModel viewModel,
-            INavigationViewPageProvider navigationViewPageProvider,
             INavigationService navigationService,
-            IThemeService themeService)
+            IServiceProvider serviceProvider,
+            ISnackbarService snackbarService)
         {
-            ViewModel = viewModel;
-            DataContext = this;
+            _navigationService = navigationService;
+            _serviceProvider = serviceProvider;
+            _snackbarService = snackbarService;
 
             InitializeComponent();
 
-            // Set navigation
-            SetPageService(navigationViewPageProvider);
-            navigationService.SetNavigationControl(RootNavigation);
+            // Set up services
+            SetupServices();
 
-            // Apply theme (using default theme)
-            themeService.SetTheme(ApplicationTheme.Dark); // or ApplicationTheme.Light
+            // Navigate to dashboard on startup
+            NavigateToPage(typeof(DashboardPage));
         }
 
-        #region INavigationWindow implementation
-        public INavigationView GetNavigation() => RootNavigation;
+        private void SetupServices()
+        {
+            // Set up navigation service
+            _navigationService.SetNavigationControl(NavigationView);
 
-        public bool Navigate(Type pageType) => RootNavigation.Navigate(pageType);
+            // Set up snackbar service
+            _snackbarService.SetSnackbarPresenter(SnackbarPresenter);
+        }
 
-        public void SetPageService(INavigationViewPageProvider navigationViewPageProvider)
-            => RootNavigation.SetPageProviderService(navigationViewPageProvider);
+        #region INavigationWindow Implementation
+
+        public INavigationView GetNavigation() => NavigationView;
+
+        public bool Navigate(Type pageType) => NavigateToPage(pageType);
+
+        public void SetPageService(INavigationViewPageProvider pageService)
+        {
+            // Implementation for page service
+        }
+
+        public void SetServiceProvider(IServiceProvider serviceProvider)
+        {
+            // Implementation for service provider
+        }
 
         public void ShowWindow() => Show();
 
         public void CloseWindow() => Close();
 
-        public void SetServiceProvider(IServiceProvider serviceProvider)
-        {
-            // Implementation if needed
-        }
         #endregion
 
-        protected override void OnClosed(EventArgs e)
+        private bool NavigateToPage(Type pageType)
         {
-            base.OnClosed(e);
-            Application.Current.Shutdown();
+            try
+            {
+                var page = _serviceProvider.GetService(pageType);
+                if (page != null)
+                {
+                    NavigationFrame.Navigate(page);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Navigation error: {ex.Message}");
+                return false;
+            }
         }
     }
 }
