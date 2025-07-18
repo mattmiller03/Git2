@@ -456,6 +456,11 @@ namespace UiDesktopApp2.ViewModels.Pages
                 IsStatusOpen = true;
             }
         }
+
+        public IEnumerable<ConnectionProfile> GetAllProfiles()
+        {
+            return _profiles.ToList(); // Return a copy to prevent external modification
+        }
         [RelayCommand]
         private void DebugProfiles()
         {

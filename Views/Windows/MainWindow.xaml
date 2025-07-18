@@ -1,76 +1,106 @@
-﻿<ui:FluentWindow x:Class="UiDesktopApp2.Views.Windows.MainWindow"
-                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                 xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                 xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-                 mc:Ignorable="d"
-                 Title="vCenter Migration Tool"
-                 Height="720"
-                 Width="1280"
-                 WindowStartupLocation="CenterScreen">
+﻿<ui:FluentWindow
+    x:Class="UiDesktopApp2.Views.Windows.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:local="clr-namespace:UiDesktopApp2.Views.Windows"
+    xmlns:helpers="clr-namespace:UiDesktopApp2.Helpers"
+    mc:Ignorable="d"
+    Title="vCenter Migration Tool"
+    d:DesignWidth="1100"
+    d:DesignHeight="650"
+    MinWidth="800"
+    MinHeight="600"
+    ExtendsContentIntoTitleBar="True"
+    Loaded="OnMainWindowLoaded">
 
     <Grid>
-        <!-- Main Navigation -->
-        <ui:NavigationView x:Name="NavigationView"
-                          PaneDisplayMode="Left">
+        <Grid.Background>
+            <SolidColorBrush Color="{DynamicResource ApplicationBackgroundColor}"/>
+        </Grid.Background>
 
-            <!-- Navigation Menu Items -->
-            <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem Content="Dashboard" 
-                                      Icon="{ui:SymbolIcon Home24}" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-                <ui:NavigationViewItem Content="Connections" 
-                                      Icon="{ui:SymbolIcon Plug24}" />
+        <!-- TitleBar -->
+        <ui:TitleBar
+            Grid.Row="0"
+            Title="vCenter Migration Tool"
+            Icon="pack://application:,,,/Assets/wpfui-icon-256.png" />
 
-                <ui:NavigationViewItem Content="Migration" 
-                                      Icon="{ui:SymbolIcon ArrowMove24}" />
+        <!-- Main Content -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
 
-                <ui:NavigationViewItem Content="Backup" 
-                                      Icon="{ui:SymbolIcon Archive24}" />
+            <!-- Navigation -->
+            <ui:NavigationView
+                x:Name="NavigationView"
+                Grid.Column="0"
+                PaneDisplayMode="Left"
+                IsPaneOpen="True"
+                IsBackButtonVisible="Collapsed"
+                OpenPaneLength="250"
+                Navigated="NavigationView_OnNavigated">
 
-                <ui:NavigationViewItem Content="Validation" 
-                                      Icon="{ui:SymbolIcon CheckmarkCircle24}" />
+                <ui:NavigationView.MenuItems>
+                    <ui:NavigationViewItem
+                        Content="Dashboard"
+                        Icon="{ui:SymbolIcon Home24}"
+                        Tag="UiDesktopApp2.Views.Pages.DashboardPage" />
 
-                <ui:NavigationViewItem Content="Data" 
-                                      Icon="{ui:SymbolIcon Database24}" />
+                    <ui:NavigationViewItem
+                        Content="Connections"
+                        Icon="{ui:SymbolIcon Globe24}"
+                        Tag="UiDesktopApp2.Views.Pages.ConnectionsPage" />
 
-                <ui:NavigationViewItem Content="Logs" 
-                                      Icon="{ui:SymbolIcon Document24}" />
-            </ui:NavigationView.MenuItems>
+                    <ui:NavigationViewItem
+                        Content="Inventory"
+                        Icon="{ui:SymbolIcon DataHistogram24}"
+                        Tag="UiDesktopApp2.Views.Pages.InventoryPage" />
 
-            <!-- Footer Menu Items -->
-            <ui:NavigationView.FooterMenuItems>
-                <ui:NavigationViewItem Content="Settings" 
-                                      Icon="{ui:SymbolIcon Settings24}" />
+                    <ui:NavigationViewItem
+                        Content="Backup"
+                        Icon="{ui:SymbolIcon CloudBackup24}"
+                        Tag="UiDesktopApp2.Views.Pages.BackupPage" />
 
-                <ui:NavigationViewItem Content="About" 
-                                      Icon="{ui:SymbolIcon Info24}" />
-            </ui:NavigationView.FooterMenuItems>
-        </ui:NavigationView>
+                    <ui:NavigationViewItem
+                        Content="Migration"
+                        Icon="{ui:SymbolIcon ArrowSwap24}"
+                        Tag="UiDesktopApp2.Views.Pages.MigrationPage" />
 
-        <!-- Main Content Frame (outside NavigationView) -->
-        <Frame x:Name="NavigationFrame" 
-               NavigationUIVisibility="Hidden"
-               Margin="250,0,0,0" />
+                    <ui:NavigationViewItem
+                        Content="Logs"
+                        Icon="{ui:SymbolIcon Document24}"
+                        Tag="UiDesktopApp2.Views.Pages.LogsPage" />
+                </ui:NavigationView.MenuItems>
 
-        <!-- Snackbar for notifications -->
-        <ui:SnackbarPresenter x:Name="SnackbarPresenter"
-                             VerticalAlignment="Bottom"
-                             HorizontalAlignment="Right"
-                             Margin="20" />
+                <ui:NavigationView.FooterMenuItems>
+                    <ui:NavigationViewItem
+                        Content="Settings"
+                        Icon="{ui:SymbolIcon Settings24}"
+                        Tag="UiDesktopApp2.Views.Pages.SettingsPage" />
+                </ui:NavigationView.FooterMenuItems>
+            </ui:NavigationView>
 
-        <!-- Simple overlay for dialogs -->
-        <Grid x:Name="DialogOverlay" 
-              Background="Transparent"
-              Visibility="Collapsed"
-              Panel.ZIndex="1000">
-            <Grid.Background>
-                <SolidColorBrush Color="Black" Opacity="0.5" />
-            </Grid.Background>
-            <ContentPresenter x:Name="DialogPresenter" 
-                             HorizontalAlignment="Center"
-                             VerticalAlignment="Center" />
+            <!-- Page Content -->
+            <Border
+                Grid.Column="1"
+                CornerRadius="8,0,0,0"
+                Background="{DynamicResource ControlFillColorDefaultBrush}"
+                BorderThickness="1,1,0,0"
+                BorderBrush="{DynamicResource ControlElevationBorderBrush}"
+                Margin="0,0,0,0"
+                Padding="20">
+                <ContentPresenter x:Name="ContentPresenter" />
+            </Border>
         </Grid>
+        <ui:SnackbarPresenter x:Name="SnackbarPresenter" />
     </Grid>
 </ui:FluentWindow>

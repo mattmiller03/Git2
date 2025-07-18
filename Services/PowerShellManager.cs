@@ -27,19 +27,22 @@ namespace UiDesktopApp2.Services
         /// <summary>
         /// Test vCenter connection using PowerShell script
         /// </summary>
-        public async Task<ConnectionResult> TestVCenterConnectionAsync(ConnectionProfile profile, PSCredential credential)
+        public async Task<ConnectionResult> TestVCenterConnectionAsync(
+            ConnectionProfile profile,
+            PSCredential credential,
+            CancellationToken cancellationToken = default)
         {
             try
             {
                 _logger.LogInformation("Testing vCenter connection to {Server}", profile.ServerAddress);
 
                 var parameters = new Dictionary<string, object>
-                {
-                    { "vCenterServer", profile.ServerAddress },
-                    { "Credential", credential }
-                };
+        {
+            { "vCenterServer", profile.ServerAddress },
+            { "Credential", credential }
+        };
 
-                var result = await ExecuteScriptAsync("Test-VcConnection", parameters);
+                var result = await ExecuteScriptAsync("Test-VcConnection", parameters, cancellationToken);
                 var connectionResult = ParseConnectionResult(result);
 
                 if (connectionResult.IsSuccessful)
@@ -53,6 +56,11 @@ namespace UiDesktopApp2.Services
                 }
 
                 return connectionResult;
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("vCenter connection test cancelled for {Server}", profile.ServerAddress);
+                return new ConnectionResult(false, errorMessage: "Connection test was cancelled");
             }
             catch (Exception ex)
             {
@@ -183,9 +191,12 @@ namespace UiDesktopApp2.Services
         }
 
         /// <summary>
-        /// Execute PowerShell script with parameters
+        /// Execute PowerShell script with parameters and cancellation support
         /// </summary>
-        private async Task<string> ExecuteScriptAsync(string scriptName, Dictionary<string, object> parameters)
+        private async Task<string> ExecuteScriptAsync(
+            string scriptName,
+            Dictionary<string, object> parameters,
+            CancellationToken cancellationToken = default)
         {
             var scriptPath = _scriptManager.GetScriptPath(scriptName);
 
@@ -197,16 +208,36 @@ namespace UiDesktopApp2.Services
                 ps.AddParameter(param.Key, param.Value);
             }
 
-            var results = await Task.Run(() => ps.Invoke());
+            // Create Task for PowerShell execution that can be cancelled
+            var psTask = Task.Run(() => ps.Invoke(), cancellationToken);
 
-            if (ps.HadErrors)
+            try
             {
-                var errors = string.Join(Environment.NewLine, ps.Streams.Error.Select(e => e.ToString()));
-                _logger.LogError("PowerShell script errors: {Errors}", errors);
-                throw new Exception($"PowerShell script errors: {errors}");
-            }
+                var results = await psTask;
 
-            return string.Join(Environment.NewLine, results.Select(r => r?.ToString() ?? string.Empty));
+                if (ps.HadErrors)
+                {
+                    var errors = string.Join(Environment.NewLine, ps.Streams.Error.Select(e => e.ToString()));
+                    _logger.LogError("PowerShell script errors: {Errors}", errors);
+                    throw new Exception($"PowerShell script errors: {errors}");
+                }
+
+                return string.Join(Environment.NewLine, results.Select(r => r?.ToString() ?? string.Empty));
+            }
+            catch (OperationCanceledException)
+            {
+                // Try to stop the PowerShell execution if it's still running
+                try
+                {
+                    ps.Stop();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error stopping PowerShell execution");
+                }
+
+                throw; // Re-throw the cancellation
+            }
         }
 
         /// <summary>

@@ -8,6 +8,7 @@ using UiDesktopApp2.Helpers;
 using UiDesktopApp2.Models;
 using System.Linq;
 using System.Threading;
+using UiDesktopApp2.Services;
 
 namespace UiDesktopApp2.Services
 {
@@ -40,53 +41,150 @@ namespace UiDesktopApp2.Services
         }
 
         /// <summary>
-        /// Test connection to vCenter server
+        /// Test connection to vCenter server with timeout
         /// </summary>
-        public async Task<ConnectionResult> TestConnectionAsync(ConnectionProfile profile)
+        public async Task<ConnectionResult> TestConnectionAsync(ConnectionProfile profile, int timeoutSeconds = 30, CancellationToken cancellationToken = default)
         {
-            await _connectionSemaphore.WaitAsync();
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken);
+
             try
             {
-                _logger.LogInformation("Testing connection to {Server}", profile.ServerAddress);
-
-                var securePassword = _credentialManager.GetPassword(profile.Name);
-                if (securePassword.Length == 0)
+                await _connectionSemaphore.WaitAsync(linkedCts.Token);
+                try
                 {
-                    var result = new ConnectionResult(false, errorMessage: "No saved credentials found");
-                    _logger.LogWarning("No credentials found for profile {ProfileName}", profile.Name);
-                    return result;
+                    _logger.LogInformation("Testing connection to {Server} with {Timeout}s timeout",
+                        profile.ServerAddress, timeoutSeconds);
+
+                    var securePassword = _credentialManager.GetPassword(profile.Name);
+                    if (securePassword.Length == 0)
+                    {
+                        var result = new ConnectionResult(false, errorMessage: "No saved credentials found");
+                        _logger.LogWarning("No credentials found for profile {ProfileName}", profile.Name);
+                        return result;
+                    }
+
+                    var credential = new PSCredential(profile.Username, securePassword);
+
+                    // Pass the cancellation token to the PowerShell manager
+                    var connectionResult = await _powerShellManager.TestVCenterConnectionAsync(
+                        profile, credential, linkedCts.Token);
+
+                    // Cache successful connections
+                    if (connectionResult.IsSuccessful)
+                    {
+                        _connectionCache[profile.ServerAddress] = connectionResult;
+                        profile.LastConnected = DateTime.Now; // Update last connected time
+                        _logger.LogInformation("Successfully connected to {Server}, version: {Version}",
+                            profile.ServerAddress, connectionResult.Version);
+                    }
+                    else
+                    {
+                        _connectionCache.Remove(profile.ServerAddress);
+                        _logger.LogError("Failed to connect to {Server}: {Error}",
+                            profile.ServerAddress, connectionResult.ErrorMessage);
+                    }
+
+                    return connectionResult;
+                }
+                finally
+                {
+                    _connectionSemaphore.Release();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                if (timeoutCts.Token.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning("Connection test to {Server} timed out after {Timeout}s",
+                        profile.ServerAddress, timeoutSeconds);
+                    return new ConnectionResult(false, errorMessage: $"Connection timed out after {timeoutSeconds} seconds");
                 }
 
-                var credential = new PSCredential(profile.Username, securePassword);
-                var connectionResult = await _powerShellManager.TestVCenterConnectionAsync(profile, credential);
-
-                // Cache successful connections
-                if (connectionResult.IsSuccessful)
-                {
-                    _connectionCache[profile.ServerAddress] = connectionResult;
-                    _logger.LogInformation("Successfully connected to {Server}, version: {Version}",
-                        profile.ServerAddress, connectionResult.Version);
-                }
-                else
-                {
-                    _connectionCache.Remove(profile.ServerAddress);
-                    _logger.LogError("Failed to connect to {Server}: {Error}",
-                        profile.ServerAddress, connectionResult.ErrorMessage);
-                }
-
-                return connectionResult;
+                _logger.LogInformation("Connection test to {Server} was cancelled", profile.ServerAddress);
+                return new ConnectionResult(false, errorMessage: "Connection test cancelled");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Connection test failed for {Server}", profile.ServerAddress);
                 return new ConnectionResult(false, errorMessage: ex.Message);
             }
-            finally
+        }
+        /// <summary>
+        /// Check if a server address already exists in any profile
+        /// </summary>
+        public bool ServerExists(string serverAddress)
+        {
+            return ServerProfiles.Any(p =>
+                string.Equals(p.ServerAddress, serverAddress, StringComparison.OrdinalIgnoreCase));
+        }
+
+        /// <summary>
+        /// Update profile with option to transfer credentials
+        /// </summary>
+        public async Task<bool> UpdateProfileAsync(string oldProfileName, ConnectionProfile newProfile, bool transferCredentials)
+        {
+            try
             {
-                _connectionSemaphore.Release();
+                var oldProfile = GetProfileByName(oldProfileName);
+                if (oldProfile == null)
+                {
+                    _logger.LogWarning("Cannot update profile: original profile {ProfileName} not found", oldProfileName);
+                    return false;
+                }
+
+                // First update the profile in storage
+                _profileManager.SaveProfile(newProfile);
+
+                // Transfer credentials if requested
+                if (transferCredentials && oldProfile.Name != newProfile.Name)
+                {
+                    var password = _credentialManager.GetPassword(oldProfile.Name);
+                    if (password.Length > 0)
+                    {
+                        _credentialManager.SavePassword(newProfile.Name, newProfile.Username, password);
+                        _credentialManager.DeletePassword(oldProfile.Name);
+                    }
+                }
+
+                // If the name changed, delete the old profile
+                if (oldProfile.Name != newProfile.Name)
+                {
+                    _profileManager.DeleteProfile(oldProfile.Name);
+                }
+
+                // Reload profiles and update cache references
+                LoadProfiles();
+
+                if (_connectionCache.TryGetValue(oldProfile.ServerAddress, out var cachedResult))
+                {
+                    if (oldProfile.ServerAddress != newProfile.ServerAddress)
+                    {
+                        _connectionCache.Remove(oldProfile.ServerAddress);
+                        _connectionCache[newProfile.ServerAddress] = cachedResult;
+                    }
+                }
+
+                // If this was the current connection, update the reference
+                if (CurrentConnection?.Name == oldProfile.Name)
+                {
+                    CurrentConnection = newProfile;
+                }
+
+                _logger.LogInformation("Profile {OldName} updated to {NewName}", oldProfile.Name, newProfile.Name);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update profile {ProfileName}", oldProfileName);
+                return false;
             }
         }
 
+        private ConnectionProfile? GetProfileByName(string name)
+        {
+            return ServerProfiles.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+        }
         /// <summary>
         /// Connect to vCenter server and set as current connection
         /// </summary>
@@ -230,16 +328,140 @@ namespace UiDesktopApp2.Services
         {
             _connectionSemaphore?.Dispose();
         }
-    }
 
-    /// <summary>
-    /// Event arguments for connection status changes
-    /// </summary>
-    public class ConnectionStatusChangedEventArgs(bool isConnected, ConnectionProfile profile, string? version = null, string? errorMessage = null) : EventArgs
-    {
-        public bool IsConnected { get; } = isConnected;
-        public ConnectionProfile Profile { get; } = profile;
-        public string? Version { get; } = version;
-        public string? ErrorMessage { get; } = errorMessage;
+        /// <summary>
+        /// Event arguments for connection status changes
+        /// </summary>
+        public class ConnectionStatusChangedEventArgs(bool isConnected, ConnectionProfile profile, string? version = null, string? errorMessage = null) : EventArgs
+        {
+            public bool IsConnected { get; } = isConnected;
+            public ConnectionProfile Profile { get; } = profile;
+            public string? Version { get; } = version;
+            public string? ErrorMessage { get; } = errorMessage;
+        }
+
+        public async Task<ConnectionResult> TestConnectionWithTimeoutAsync(ConnectionProfile profile, int timeoutSeconds = 30, CancellationToken cancellationToken = default)
+        {
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(timeoutCts.Token, cancellationToken);
+
+            try
+            {
+                await _connectionSemaphore.WaitAsync(linkedCts.Token);
+                try
+                {
+                    _logger.LogInformation("Testing connection to {Server} with {Timeout}s timeout",
+                        profile.ServerAddress, timeoutSeconds);
+
+                    var securePassword = _credentialManager.GetPassword(profile.Name);
+                    if (securePassword.Length == 0)
+                    {
+                        var result = new ConnectionResult(false, errorMessage: "No saved credentials found");
+                        _logger.LogWarning("No credentials found for profile {ProfileName}", profile.Name);
+                        return result;
+                    }
+
+                    var credential = new PSCredential(profile.Username, securePassword);
+
+                    // Pass the cancellation token to the PowerShell manager
+                    var connectionResult = await _powerShellManager.TestVCenterConnectionAsync(
+                        profile, credential, linkedCts.Token);
+
+                    // Cache successful connections
+                    if (connectionResult.IsSuccessful)
+                    {
+                        _connectionCache[profile.ServerAddress] = connectionResult;
+                        profile.LastConnected = DateTime.Now; // Update last connected time
+                        _logger.LogInformation("Successfully connected to {Server}, version: {Version}",
+                            profile.ServerAddress, connectionResult.Version);
+                    }
+                    else
+                    {
+                        _connectionCache.Remove(profile.ServerAddress);
+                        _logger.LogError("Failed to connect to {Server}: {Error}",
+                            profile.ServerAddress, connectionResult.ErrorMessage);
+                    }
+
+                    return connectionResult;
+                }
+                finally
+                {
+                    _connectionSemaphore.Release();
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                if (timeoutCts.Token.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning("Connection test to {Server} timed out after {Timeout}s",
+                        profile.ServerAddress, timeoutSeconds);
+                    return new ConnectionResult(false, errorMessage: $"Connection timed out after {timeoutSeconds} seconds");
+                }
+
+                _logger.LogInformation("Connection test to {Server} was cancelled", profile.ServerAddress);
+                return new ConnectionResult(false, errorMessage: "Connection test cancelled");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Connection test failed for {Server}", profile.ServerAddress);
+                return new ConnectionResult(false, errorMessage: ex.Message);
+            }
+        }
+        /// <summary>
+        /// Test connection with automatic retry for transient errors
+        /// </summary>
+        public async Task<ConnectionResult> TestConnectionWithRetryAsync(
+            ConnectionProfile profile,
+            int maxRetries = 3,
+            int initialDelayMs = 500,
+            CancellationToken cancellationToken = default)
+        {
+            int retryCount = 0;
+            int delayMs = initialDelayMs;
+
+            while (true)
+            {
+                var result = await TestConnectionAsync(profile, 15, cancellationToken);
+
+                if (result.IsSuccessful || retryCount >= maxRetries || !IsTransientError(result.ErrorMessage))
+                {
+                    return result;
+                }
+
+                _logger.LogWarning("Transient error connecting to {Server}, retrying in {DelayMs}ms (attempt {RetryCount}/{MaxRetries}): {Error}",
+                    profile.ServerAddress, delayMs, retryCount + 1, maxRetries, result.ErrorMessage);
+
+                try
+                {
+                    await Task.Delay(delayMs, cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    _logger.LogInformation("Connection retry cancelled for {Server}", profile.ServerAddress);
+                    return result;
+                }
+
+                retryCount++;
+                delayMs *= 2; // Exponential backoff
+            }
+        }
+
+        /// <summary>
+        /// Determines if an error is likely transient and should be retried
+        /// </summary>
+        private bool IsTransientError(string? errorMessage)
+        {
+            if (string.IsNullOrEmpty(errorMessage))
+                return false;
+
+            // Common transient error messages - add more based on experience
+            return errorMessage.Contains("timed out", StringComparison.OrdinalIgnoreCase) ||
+                   errorMessage.Contains("connection refused", StringComparison.OrdinalIgnoreCase) ||
+                   errorMessage.Contains("temporarily unavailable", StringComparison.OrdinalIgnoreCase) ||
+                   errorMessage.Contains("network error", StringComparison.OrdinalIgnoreCase) ||
+                   errorMessage.Contains("too many connections", StringComparison.OrdinalIgnoreCase);
+        }
     }
 }
+
+

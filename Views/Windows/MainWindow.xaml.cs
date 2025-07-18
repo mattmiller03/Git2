@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using System;
+using System.Diagnostics;
 using System.Windows;
 using UiDesktopApp2.Views.Pages;
 using Wpf.Ui;
@@ -38,8 +39,16 @@ namespace UiDesktopApp2.Views.Windows
             // Set up navigation service
             _navigationService.SetNavigationControl(NavigationView);
 
-            // Set up snackbar service
-            _snackbarService.SetSnackbarPresenter(SnackbarPresenter);
+            // Set up snackbar service - add null check for safety
+            if (SnackbarPresenter != null)
+            {
+                _snackbarService.SetSnackbarPresenter(SnackbarPresenter);
+            }
+            else
+            {
+                // Log or handle the case where SnackbarPresenter is null
+                Debug.WriteLine("SnackbarPresenter is null in SetupServices");
+            }
         }
 
         #region INavigationWindow Implementation

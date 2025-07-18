@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UiDesktopApp2.Models;
+using UiDesktopApp2.Services;
+using UiDesktopApp2.Helpers;
 
 namespace UiDesktopApp2.Helpers
 {
@@ -13,5 +15,9 @@ namespace UiDesktopApp2.Helpers
         ConnectionProfile? GetProfile(string name);
         void SaveProfile(ConnectionProfile profile);
         void DeleteProfile(string name);
+        // Add the new methods as interfaces only
+        IEnumerable<ConnectionProfile> GetProfilesByCategory(string category);
+        void ExportProfiles(string filePath);
+        void ImportProfiles(string filePath, bool overwrite = false);
     }
 }
